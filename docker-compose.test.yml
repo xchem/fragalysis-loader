@@ -14,7 +14,6 @@ services:
     image: xchem/fragalysis-loader
     command: ["/code/wait-for-it.sh", "mysql:3306", "--", "/bin/bash", "/code/test_entry.sh"]
     volumes:
-      - .:/code
       - ../logs:/code/logs/
       - ../media:/code/media/
     ports:
