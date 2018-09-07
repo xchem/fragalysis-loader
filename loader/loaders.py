@@ -95,11 +95,11 @@ def add_comp(mol, projects, option=None, comp_id=None):
         return None
     new_comp.inchi = inchi
     m = sanitized_mol
-    try:
-        new_comp.mol_log_p = Chem.Crippen.MolLogP(m)
-    except:
+
+    if m is None:
         sys.stderr.write("NONE MOLECULE PRODUCED\n" + smiles + "\n" + inchi)
         return None
+    new_comp.mol_log_p = Chem.Crippen.MolLogP(m)
     new_comp.mol_wt = float(Chem.rdMolDescriptors.CalcExactMolWt(m))
     new_comp.heavy_atom_count = Chem.Lipinski.HeavyAtomCount(m)
     new_comp.heavy_atom_mol_wt = float(Descriptors.HeavyAtomMolWt(m))
@@ -251,36 +251,14 @@ def delete_users(project):
     project.save()
 
 
-def add_proposals(target, proposal_path):
-    """
-    Add the proposals for a given target
-    :param target: the target to add proposals to
-    :param proposal_path: the path to the file describing the available proposals in space delimited format.
-    :return: the Django projects created in this process
-    """
-    proposals = [x.strip() for x in open(proposal_path).readlines() if x.strip()]
-    projects = []
-    for proposal_line in proposals:
-        proposal = proposal_line.split()[0]
-        project = Project.objects.get_or_create(title=proposal)[0]
-        projects.append(project)
-        delete_users(project)
-        target.project_id.add(project)
-        for fedid in proposal_line.split()[1:]:
-            user = User.objects.get_or_create(username=fedid, password="")[0]
-            project.user_id.add(user)
-    target.save()
-    return projects
-
-
-def add_visits(target, visit_path):
+def add_visits_or_proposal(target, file_path):
     """
     Add visits for a given target
     :param target: the target to add visits to
-    :param visit_path: the path to the file describing the available visits in space delimited format.
+    :param file_path: the path to the file describing the available visits in space delimited format.
     :return: the Django projects created in this process
     """
-    visits = [x.strip() for x in open(visit_path).readlines() if x.strip()]
+    visits = [x.strip() for x in open(file_path).readlines() if x.strip()]
     projects = []
     for visit_line in visits:
         visit = visit_line.split()[0]
@@ -307,9 +285,9 @@ def add_projects(new_target, dir_path):
     visit_path = os.path.join(dir_path, "VISITS")
     projects = []
     if os.path.isfile(proposal_path):
-        projects.extend(add_proposals(new_target, proposal_path))
+        projects.extend(add_visits_or_proposal(new_target, proposal_path))
     if os.path.isfile(visit_path):
-        projects.extend(add_visits(new_target, visit_path))
+        projects.extend(add_visits_or_proposal(new_target, visit_path))
     remove_not_added(new_target, projects)
     return projects
 
@@ -512,7 +490,7 @@ def process_target(prefix, target_name):
     :return:
     """
     file_path_dict = get_dict()
-    new_data = load_from_dir(target_name, prefix + target_name, file_path_dict)
+    load_from_dir(target_name, prefix + target_name, file_path_dict)
     # Check for new data
     new_data_file = os.path.join(prefix + target_name, "NEW_DATA")
     if os.path.isfile(new_data_file):
