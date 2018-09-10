@@ -478,6 +478,7 @@ def analyse_target(target_name):
     """
     target = Target.objects.get(title=target_name)
     mols = list(Molecule.objects.filter(prot_id__target_id=target))
+    print("Analysing " + int(len(mols)) + " molecules for " + target_name)
     # Delete the old ones for this target
     MolGroup.objects.filter(group_type="PC", target_id=target).delete()
     MolGroup.objects.filter(group_type="MC", target_id=target).delete()
@@ -497,6 +498,7 @@ def process_target(prefix, target_name):
     # Check for new data
     new_data_file = os.path.join(target_path, "NEW_DATA")
     if os.path.isfile(new_data_file):
+        print("Analysing target: " + target_name)
         analyse_target(target_name)
         os.remove(new_data_file)
     else:
