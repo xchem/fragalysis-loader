@@ -332,13 +332,15 @@ def load_from_dir(target_name, dir_path, input_dict):
     if os.path.isdir(dir_path):
         pass
     else:
-        "No data to add: " + target_name
+        print("No data to add: " + target_name)
         return None
     new_target = add_target(target_name)
     projects = add_projects(new_target, dir_path)
     directories = sorted(os.listdir(dir_path))
     xtal_list = []
     for xtal in directories:
+        if not os.path.isdir(os.path.join(dir_path,xtal)):
+            continue
         print(xtal)
         xtal_list.append(xtal)
         new_path = os.path.join(dir_path, xtal)
@@ -490,9 +492,12 @@ def process_target(prefix, target_name):
     :return:
     """
     file_path_dict = get_dict()
-    load_from_dir(target_name, prefix + target_name, file_path_dict)
+    target_path = os.path.join(prefix, target_name)
+    load_from_dir(target_name, target_path, file_path_dict)
     # Check for new data
-    new_data_file = os.path.join(prefix + target_name, "NEW_DATA")
+    new_data_file = os.path.join(target_path, "NEW_DATA")
     if os.path.isfile(new_data_file):
         analyse_target(target_name)
         os.remove(new_data_file)
+    else:
+        print("NEW_DATA not found for " + target_path)
