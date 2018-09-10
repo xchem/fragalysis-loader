@@ -478,7 +478,7 @@ def analyse_target(target_name):
     """
     target = Target.objects.get(title=target_name)
     mols = list(Molecule.objects.filter(prot_id__target_id=target))
-    print("Analysing " + int(len(mols)) + " molecules for " + target_name)
+    print("Analysing " + str(len(mols)) + " molecules for " + target_name)
     # Delete the old ones for this target
     MolGroup.objects.filter(group_type="PC", target_id=target).delete()
     MolGroup.objects.filter(group_type="MC", target_id=target).delete()
