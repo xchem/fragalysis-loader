@@ -20,6 +20,5 @@ if __name__ == "__main__":
 
     prefix = "/code/media/NEW_DATA/"
     targets_to_load = get_target_list(prefix)
-    print("UPDATE DEBUG")
     for target_name in targets_to_load:
         process_target(prefix, target_name)
