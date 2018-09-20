@@ -373,9 +373,12 @@ def load_from_dir(target_name, dir_path, input_dict):
                 print("NONE MOL: " + xtal)
             else:
                 if contact_path and os.path.isfile(contact_path):
-                    add_contacts(
-                        json.load(open(contact_path)), new_target, new_prot, new_mol
-                    )
+                    try:
+                        add_contacts(
+                            json.load(open(contact_path)), new_target, new_prot, new_mol
+                        )
+                    except ValueError:
+                        print("Error parsing: " + contact_path)
                 if ligand_confidence and os.path.isfile(ligand_confidence):
                     save_confidence(new_mol,ligand_confidence)
                 if acc_path and os.path.isfile(acc_path):
