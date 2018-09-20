@@ -15,7 +15,7 @@ from django.core.exceptions import ValidationError
 from django.core.files import File
 from rdkit import Chem
 from rdkit.Chem import Descriptors
-from scoring.models import MolGroup
+from scoring.models import MolGroup,MolAnnotation
 from frag.alysis.run_clustering import run_lig_cluster
 from loader.functions import sanitize_mol, get_path_or_none
 from frag.network.decorate import get_3d_vects_for_mol
@@ -322,6 +322,14 @@ def remove_not_added(target, xtal_list):
     return None
 
 
+def save_confidence(mol, file_path, annotation_type="ligand_confidence"):
+
+    input_dict = json.load(open(file_path))
+    confidence_val = input_dict["ligand_confidence"]
+    mol_annot = MolAnnotation.get_or_create(mol_id=mol,annotation_type=annotation_type)[0]
+    mol_annot.annotation_text = confidence_val
+    mol_annot.save()
+
 def load_from_dir(target_name, dir_path, input_dict):
     """
     Load the data for a given target from a directory structure
@@ -350,6 +358,7 @@ def load_from_dir(target_name, dir_path, input_dict):
         mtz_path = get_path_or_none(new_path, xtal, input_dict, "MTZ")
         # optional ones - contacts and hotspots
         contact_path = get_path_or_none(new_path, xtal, input_dict, "CONTACTS")
+        ligand_confidence = get_path_or_none(new_path, xtal, input_dict, "CONFIDENCE")
         acc_path = get_path_or_none(new_path, xtal, input_dict, "ACC")
         don_path = get_path_or_none(new_path, xtal, input_dict, "DON")
         lip_path = get_path_or_none(new_path, xtal, input_dict, "LIP")
@@ -367,6 +376,8 @@ def load_from_dir(target_name, dir_path, input_dict):
                     add_contacts(
                         json.load(open(contact_path)), new_target, new_prot, new_mol
                     )
+                if ligand_confidence and os.path.isfile(ligand_confidence):
+                    save_confidence(new_mol,ligand_confidence)
                 if acc_path and os.path.isfile(acc_path):
                     add_map(new_prot, new_target, acc_path, "AC")
                 if don_path and os.path.isfile(don_path):
