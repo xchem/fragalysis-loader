@@ -9,7 +9,7 @@ pipeline {
   environment {
     // Local registry details (for FROM image)
     REGISTRY_USER = 'jenkins'
-    REGISTRY = 'docker-registry.default:5000'
+    REGISTRY = 'docker-registry.default.svc:5000'
     STREAM_IMAGE = "${REGISTRY}/fragalysis-cicd/fragalysis-loader:latest"
 
     // Slack channel for all notifications
