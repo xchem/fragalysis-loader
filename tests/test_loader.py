@@ -441,20 +441,20 @@ class LoderLoaderTestCase(TestCase):
             Molecule.objects.filter(prot_id__target_id=self.target), self.target
         )
         self.assertEqual(MolGroup.objects.filter(group_type="MC").count(), 1)
-        self.assertEqual(MolGroup.objects.filter(group_type="PC").count(), 16)
+        self.assertEqual(MolGroup.objects.filter(group_type="PC").count(), 51)
         analyse_mols(
             Molecule.objects.filter(prot_id__target_id=self.target), self.target
         )
         self.assertEqual(MolGroup.objects.filter(group_type="MC").count(), 2)
-        self.assertEqual(MolGroup.objects.filter(group_type="PC").count(), 32)
+        self.assertEqual(MolGroup.objects.filter(group_type="PC").count(), 102)
 
     def test_anaylse_target(self):
         analyse_target("DUMMY_TARGET")
         self.assertEqual(MolGroup.objects.filter(group_type="MC").count(), 1)
-        self.assertEqual(MolGroup.objects.filter(group_type="PC").count(), 16)
+        self.assertEqual(MolGroup.objects.filter(group_type="PC").count(), 51)
         analyse_target("DUMMY_TARGET")
         self.assertEqual(MolGroup.objects.filter(group_type="MC").count(), 1)
-        self.assertEqual(MolGroup.objects.filter(group_type="PC").count(), 16)
+        self.assertEqual(MolGroup.objects.filter(group_type="PC").count(), 51)
         self.assertEqual(Vector3D.objects.filter().count(), 29)
         self.assertEqual(Vector.objects.filter().count(), 17)
         self.assertEqual(Vector.objects.filter(type="AD").count(), 11)
