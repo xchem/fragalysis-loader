@@ -327,9 +327,11 @@ def save_confidence(mol, file_path, annotation_type="ligand_confidence"):
     val_store_dict = ["ligand_confidence_comment","refinement_outcome","ligand_confidence_int"]
     for val in val_store_dict:
         if val in input_dict:
-            mol_annot = MolAnnotation.objects.get_or_create(mol_id=mol, annotation_type=annotation_type)[0]
-            mol_annot.annotation_text = input_dict[val]
-            mol_annot.save()
+            value = input_dict[val]
+            if value:
+                mol_annot = MolAnnotation.objects.get_or_create(mol_id=mol, annotation_type=annotation_type)[0]
+                mol_annot.annotation_text = value
+                mol_annot.save()
         else:
             print(val+ " not found in " + str(input_dict) + " for mol " + str(mol.prot_id.code))
 
