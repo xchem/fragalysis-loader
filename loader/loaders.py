@@ -323,12 +323,15 @@ def remove_not_added(target, xtal_list):
 
 
 def save_confidence(mol, file_path, annotation_type="ligand_confidence"):
-
     input_dict = json.load(open(file_path))
-    confidence_val = input_dict["ligand_confidence"]
-    mol_annot = MolAnnotation.get_or_create(mol_id=mol,annotation_type=annotation_type)[0]
-    mol_annot.annotation_text = confidence_val
-    mol_annot.save()
+    val_store_dict = ["ligand_confidence_comment","refinement_outcome","ligand_confidence_int"]
+    for val in val_store_dict:
+        if val in input_dict:
+            mol_annot = MolAnnotation.get_or_create(mol_id=mol, annotation_type=annotation_type)[0]
+            mol_annot.annotation_text = input_dict[val]
+            mol_annot.save()
+        else:
+            print(val+ " not found in " + str(input_dict) + " for mol " + str(mol.prot_id.code))
 
 def load_from_dir(target_name, dir_path):
     """
