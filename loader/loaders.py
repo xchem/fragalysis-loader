@@ -330,13 +330,14 @@ def save_confidence(mol, file_path, annotation_type="ligand_confidence"):
     mol_annot.annotation_text = confidence_val
     mol_annot.save()
 
-def load_from_dir(target_name, dir_path, input_dict):
+def load_from_dir(target_name, dir_path):
     """
     Load the data for a given target from a directory structure
     :param target_name: the string title of the target. This will uniquely identify it.
     :param dir_path: the path to the input data.
     :return: None
     """
+    input_dict = get_dict()
     if os.path.isdir(dir_path):
         pass
     else:
@@ -372,20 +373,24 @@ def load_from_dir(target_name, dir_path, input_dict):
             if not new_mol:
                 print("NONE MOL: " + xtal)
             else:
-                if contact_path and os.path.isfile(contact_path):
+                if contact_path:
                     try:
                         add_contacts(
                             json.load(open(contact_path)), new_target, new_prot, new_mol
                         )
                     except ValueError:
                         print("Error parsing: " + contact_path)
-                if ligand_confidence and os.path.isfile(ligand_confidence):
+                else:
+                    print("Skipping contacts - " + xtal)
+                if ligand_confidence:
                     save_confidence(new_mol,ligand_confidence)
-                if acc_path and os.path.isfile(acc_path):
+                else:
+                    print("Skipping confidence - " + xtal)
+                if acc_path:
                     add_map(new_prot, new_target, acc_path, "AC")
-                if don_path and os.path.isfile(don_path):
+                if don_path:
                     add_map(new_prot, new_target, don_path, "DO")
-                if lip_path and os.path.isfile(lip_path):
+                if lip_path:
                     add_map(new_prot, new_target, lip_path, "AP")
         else:
             print("File not found: " + xtal)
@@ -506,9 +511,8 @@ def process_target(prefix, target_name):
     :param target_name:
     :return:
     """
-    file_path_dict = get_dict()
     target_path = os.path.join(prefix, target_name)
-    load_from_dir(target_name, target_path, file_path_dict)
+    load_from_dir(target_name, target_path)
     # Check for new data
     new_data_file = os.path.join(target_path, "NEW_DATA")
     if os.path.isfile(new_data_file):
