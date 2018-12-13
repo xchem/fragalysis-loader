@@ -360,6 +360,7 @@ def load_from_dir(target_name, dir_path):
         new_path = os.path.join(dir_path, xtal)
         pdb_file_path = get_path_or_none(new_path, xtal, input_dict, "APO")
         mol_file_path = get_path_or_none(new_path, xtal, input_dict, "MOL")
+        # using the pandda map for the target map file - for now
         map_path = get_path_or_none(new_path, xtal, input_dict, "PMAP")
         mtz_path = get_path_or_none(new_path, xtal, input_dict, "MTZ")
         # optional ones - contacts and hotspots
