@@ -32,7 +32,7 @@ def add_target(title):
     return new_target
 
 
-def add_prot(pdb_file_path, code, target, mtz_path=None, map_path=None):
+def add_prot(pdb_file_path, code, target, mtz_path=None, map_path=None, bound_path=None):
     """
     Add a protein with a PDB, code and
     :param pdb_file_path: the PDB file path
@@ -49,6 +49,8 @@ def add_prot(pdb_file_path, code, target, mtz_path=None, map_path=None):
         new_prot.mtz_info.save(os.path.basename(mtz_path), File(open(mtz_path)))
     if map_path:
         new_prot.map_info.save(os.path.basename(map_path), File(open(map_path)))
+    if bound_path:
+        new_prot.bound_info.save(os.path.basename(bound_path), File(open(bound_path)))
     new_prot.save()
     return new_prot
 
@@ -359,6 +361,7 @@ def load_from_dir(target_name, dir_path):
         xtal_list.append(xtal)
         new_path = os.path.join(dir_path, xtal)
         pdb_file_path = get_path_or_none(new_path, xtal, input_dict, "APO")
+        bound_path = get_path_or_none(new_path, xtal, input_dict, "BOUND")
         mol_file_path = get_path_or_none(new_path, xtal, input_dict, "MOL")
         # using the pandda map for the target map file - for now
         map_path = get_path_or_none(new_path, xtal, input_dict, "PMAP")
@@ -373,7 +376,7 @@ def load_from_dir(target_name, dir_path):
             continue
         if os.path.isfile(pdb_file_path) and os.path.isfile(mol_file_path):
             new_prot = add_prot(
-                pdb_file_path, xtal, new_target, mtz_path=mtz_path, map_path=map_path
+                pdb_file_path, xtal, new_target, mtz_path=mtz_path, map_path=map_path, bound_path=bound_path
             )
             new_mol = add_mol(mol_file_path, new_prot, projects)
             if not new_mol:
