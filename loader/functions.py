@@ -99,7 +99,7 @@ def get_path_or_none(new_path, xtal, dict_input, dict_key):
     if dict_key in dict_input:
         suffix = dict_input[dict_key]
     else:
-        print("Key - "+dict_key + " not in dictionary.")
+        print("Key - " + dict_key + " not in dictionary.")
         return None
     path = os.path.join(new_path, xtal + suffix)
     if os.path.isfile(path):

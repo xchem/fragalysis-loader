@@ -337,6 +337,7 @@ def save_confidence(mol, file_path, annotation_type="ligand_confidence"):
         else:
             print(val+ " not found in " + str(input_dict) + " for mol " + str(mol.prot_id.code))
 
+
 def load_from_dir(target_name, dir_path):
     """
     Load the data for a given target from a directory structure
@@ -530,3 +531,12 @@ def process_target(prefix, target_name):
         os.remove(new_data_file)
     else:
         print("NEW_DATA not found for " + target_path)
+
+def process_fragspect_target(prefix, target_name):
+    """
+    Process a target for fragspect
+    :param prefix:
+    :param target_name:
+    :return:
+    """
+    target_path = os.path.join(prefix, target_name)
