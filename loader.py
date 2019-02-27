@@ -16,7 +16,7 @@ if __name__ == "__main__":
     import django
 
     django.setup()
-    from loader.loaders import (process_target, process_fragspect_target)
+    from loader.loaders import process_target
 
     prefix = "/code/media/NEW_DATA/"
 
@@ -30,10 +30,6 @@ if __name__ == "__main__":
 
     targets_to_load = get_target_list(prefix, list_name=list_name)
 
-    if list_name == fragalysis_list:
-        for target_name in targets_to_load:
-            process_target(prefix, target_name)
+    for target_name in targets_to_load:
+        process_target(prefix, target_name)
 
-    elif list_name == fragspect_list:
-        for target_name in targets_to_load:
-            process_fragspect_target(prefix, target_name)

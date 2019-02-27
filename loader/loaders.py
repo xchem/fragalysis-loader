@@ -531,12 +531,3 @@ def process_target(prefix, target_name):
         os.remove(new_data_file)
     else:
         print("NEW_DATA not found for " + target_path)
-
-def process_fragspect_target(prefix, target_name):
-    """
-    Process a target for fragspect
-    :param prefix:
-    :param target_name:
-    :return:
-    """
-    target_path = os.path.join(prefix, target_name)
