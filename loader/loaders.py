@@ -339,7 +339,7 @@ def save_confidence(mol, file_path, annotation_type="ligand_confidence"):
             print(val+ " not found in " + str(input_dict) + " for mol " + str(mol.prot_id.code))
 
 
-def load_from_dir(target_name, dir_path):
+def load_from_dir(target_name, dir_path, app):
     """
     Load the data for a given target from a directory structure
     :param target_name: the string title of the target. This will uniquely identify it.
@@ -374,41 +374,43 @@ def load_from_dir(target_name, dir_path):
         acc_path = get_path_or_none(new_path, xtal, input_dict, "ACC")
         don_path = get_path_or_none(new_path, xtal, input_dict, "DON")
         lip_path = get_path_or_none(new_path, xtal, input_dict, "LIP")
-
-        if os.path.isfile(pdb_file_path) and os.path.isfile(mol_file_path):
-            new_prot = add_prot(
-                pdb_file_path, xtal, new_target, mtz_path=mtz_path, map_path=map_path, bound_path=bound_path
-            )
-            new_mol = add_mol(mol_file_path, new_prot, projects)
-            if not new_mol:
-                print("NONE MOL: " + xtal)
-            else:
-                if contact_path:
-                    try:
-                        add_contacts(
-                            json.load(open(contact_path)), new_target, new_prot, new_mol
-                        )
-                    except ValueError:
-                        print("Error parsing: " + contact_path)
+        if pdb_file_path and mol_file_path:
+            if os.path.isfile(pdb_file_path) and os.path.isfile(mol_file_path):
+                new_prot = add_prot(
+                    pdb_file_path, xtal, new_target, mtz_path=mtz_path, map_path=map_path, bound_path=bound_path
+                )
+                new_mol = add_mol(mol_file_path, new_prot, projects)
+                if not new_mol:
+                    print("NONE MOL: " + xtal)
                 else:
-                    print("Skipping contacts - " + xtal)
-                if ligand_confidence:
-                    save_confidence(new_mol,ligand_confidence)
-                else:
-                    print("Skipping confidence - " + xtal)
-                if acc_path:
-                    add_map(new_prot, new_target, acc_path, "AC")
-                if don_path:
-                    add_map(new_prot, new_target, don_path, "DO")
-                if lip_path:
-                    add_map(new_prot, new_target, lip_path, "AP")
-        elif os.path.isfile(bound_path) and os.path.isfile(map_path):
-            new_prot = add_prot(
-                pdb_file_path, xtal, new_target, mtz_path=mtz_path, map_path=map_path, bound_path=bound_path
-            )
+                    if contact_path:
+                        try:
+                            add_contacts(
+                                json.load(open(contact_path)), new_target, new_prot, new_mol
+                            )
+                        except ValueError:
+                            print("Error parsing: " + contact_path)
+                    else:
+                        print("Skipping contacts - " + xtal)
+                    if ligand_confidence:
+                        save_confidence(new_mol,ligand_confidence)
+                    else:
+                        print("Skipping confidence - " + xtal)
+                    if acc_path:
+                        add_map(new_prot, new_target, acc_path, "AC")
+                    if don_path:
+                        add_map(new_prot, new_target, don_path, "DO")
+                    if lip_path:
+                        add_map(new_prot, new_target, lip_path, "AP")
+        elif bound_path and map_path:
+            if os.path.isfile(bound_path) and os.path.isfile(map_path):
+                new_prot = add_prot(
+                    pdb_file_path, xtal, new_target, mtz_path=mtz_path, map_path=map_path, bound_path=bound_path
+                )
         else:
             print("File not found: " + xtal)
-    remove_not_added(new_target, xtal_list)
+    if app == 'fragalysis':
+        remove_not_added(new_target, xtal_list)
 
 
 def create_vect_3d(mol, new_vect, vect_ind, vector):
@@ -526,7 +528,7 @@ def process_target(prefix, target_name, app):
     :return:
     """
     target_path = os.path.join(prefix, target_name)
-    load_from_dir(target_name, target_path)
+    load_from_dir(target_name, target_path, app=app)
     # Check for new data
     new_data_file = os.path.join(target_path, "NEW_DATA")
     if os.path.isfile(new_data_file) and app == 'fragspect':
