@@ -27,7 +27,7 @@ if __name__ == "__main__":
         list_name = fragalysis_list
         app = 'fragalysis'
 
-    if os.path.isfile(os.path.join(prefix, fragspect_list)):
+    elif os.path.isfile(os.path.join(prefix, fragspect_list)):
         list_name = fragspect_list
         app = 'fragspect'
 
