@@ -402,6 +402,10 @@ def load_from_dir(target_name, dir_path):
                     add_map(new_prot, new_target, don_path, "DO")
                 if lip_path:
                     add_map(new_prot, new_target, lip_path, "AP")
+        elif os.path.isfile(bound_path) and os.path.isfile(map_path):
+            new_prot = add_prot(
+                pdb_file_path, xtal, new_target, mtz_path=mtz_path, map_path=map_path, bound_path=bound_path
+            )
         else:
             print("File not found: " + xtal)
     remove_not_added(new_target, xtal_list)
