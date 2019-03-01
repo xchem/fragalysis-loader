@@ -518,7 +518,7 @@ def analyse_target(target_name):
     analyse_mols(mols=mols, target=target)
 
 
-def process_target(prefix, target_name):
+def process_target(prefix, target_name, app):
     """
     Process the full target.
     :param prefix:
@@ -529,6 +529,9 @@ def process_target(prefix, target_name):
     load_from_dir(target_name, target_path)
     # Check for new data
     new_data_file = os.path.join(target_path, "NEW_DATA")
+    if os.path.isfile(new_data_file) and app == 'fragspect':
+        os.remove(new_data_file)
+
     if os.path.isfile(new_data_file):
         print("Analysing target: " + target_name)
         analyse_target(target_name)
