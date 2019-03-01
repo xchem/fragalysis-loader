@@ -1,12 +1,12 @@
 import os
 
 
-def get_target_list(base_path):
-    target_path = os.path.join(base_path, "TARGET_LIST")
+def get_target_list(base_path, list_name):
+    target_path = os.path.join(base_path, list_name)
     if os.path.isfile(target_path):
         return [x.strip() for x in open(target_path).read().split(" ") if x.strip()]
-    elif "TARGET_LIST" in os.environ:
-        return os.environ["TARGET_LIST"].split(",")
+    elif list_name in os.environ:
+        return os.environ[list_name].split(",")
     else:
         return ["MURD", "HAO1A", "smTGR", "PTP1B"]
 
@@ -19,6 +19,17 @@ if __name__ == "__main__":
     from loader.loaders import process_target
 
     prefix = "/code/media/NEW_DATA/"
-    targets_to_load = get_target_list(prefix)
+
+    fragalysis_list = 'TARGET_LIST'
+    fragspect_list = 'FRAGSPECT_LIST'
+
+    if os.path.isfile(os.path.join(prefix, fragalysis_list)):
+        list_name = fragalysis_list
+    elif os.path.isfile(os.path.join(prefix, fragspect_list)):
+        list_name = fragspect_list
+
+    targets_to_load = get_target_list(prefix, list_name=list_name)
+
     for target_name in targets_to_load:
         process_target(prefix, target_name)
+

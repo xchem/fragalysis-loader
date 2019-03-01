@@ -337,6 +337,7 @@ def save_confidence(mol, file_path, annotation_type="ligand_confidence"):
         else:
             print(val+ " not found in " + str(input_dict) + " for mol " + str(mol.prot_id.code))
 
+
 def load_from_dir(target_name, dir_path):
     """
     Load the data for a given target from a directory structure
