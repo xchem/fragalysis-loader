@@ -1,12 +1,12 @@
 import os
 
 
-def get_target_list(base_path, list_name):
-    target_path = os.path.join(base_path, list_name)
+def get_target_list(base_path, ln):
+    target_path = os.path.join(base_path, ln)
     if os.path.isfile(target_path):
         return [x.strip() for x in open(target_path).read().split(" ") if x.strip()]
-    elif list_name in os.environ:
-        return os.environ[list_name].split(",")
+    elif ln in os.environ:
+        return os.environ[ln].split(",")
     else:
         return ["MURD", "HAO1A", "smTGR", "PTP1B"]
 

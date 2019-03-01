@@ -373,7 +373,7 @@ def load_from_dir(target_name, dir_path):
         acc_path = get_path_or_none(new_path, xtal, input_dict, "ACC")
         don_path = get_path_or_none(new_path, xtal, input_dict, "DON")
         lip_path = get_path_or_none(new_path, xtal, input_dict, "LIP")
-        if not pdb_file_path or not mol_file_path:
+        if (not pdb_file_path or not mol_file_path) or (not bound_path):
             continue
         if os.path.isfile(pdb_file_path) and os.path.isfile(mol_file_path):
             new_prot = add_prot(
