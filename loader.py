@@ -28,7 +28,7 @@ if __name__ == "__main__":
     elif os.path.isfile(os.path.join(prefix, fragspect_list)):
         list_name = fragspect_list
 
-    targets_to_load = get_target_list(prefix, list_name=list_name)
+    targets_to_load = get_target_list(prefix, ln=list_name)
 
     for target_name in targets_to_load:
         process_target(prefix, target_name)
