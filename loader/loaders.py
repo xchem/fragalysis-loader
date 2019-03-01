@@ -276,7 +276,7 @@ def add_visits_or_proposal(target, file_path):
     return projects
 
 
-def add_projects(new_target, dir_path):
+def add_projects(new_target, dir_path, app):
     """
     Add proposals and visits as projects for a given target.
     :param new_target: the target being added
@@ -291,11 +291,11 @@ def add_projects(new_target, dir_path):
         projects.extend(add_visits_or_proposal(new_target, proposal_path))
     if os.path.isfile(visit_path):
         projects.extend(add_visits_or_proposal(new_target, visit_path))
-    remove_not_added(new_target, projects)
+    remove_not_added(new_target, projects, app=app)
     return projects
 
 
-def remove_not_added_projects(target, projects):
+def remove_not_added_projects(target, projects, app):
     """
     Remove any projects that have not been added this time around.
     Ensures the database updates, e.g. if projects or visits are added.
@@ -303,6 +303,8 @@ def remove_not_added_projects(target, projects):
     :param projects: the projects that have been added
     :return:
     """
+    if app == 'fragspect':
+        return None
     project_pks = [x.pk for x in projects]
     for project_id in target.project_id.all():
         if project_id.pk not in project_pks:
@@ -310,7 +312,7 @@ def remove_not_added_projects(target, projects):
     target.save()
 
 
-def remove_not_added(target, xtal_list):
+def remove_not_added(target, xtal_list, app):
     """
     Remove any crystals that have not been added this time around.
     Ensures the database updates, e.g. if someone nobody wants a given xtal.
@@ -318,6 +320,8 @@ def remove_not_added(target, xtal_list):
     :param xtal_list: a list of protein codes that have been added
     :return: None
     """
+    if app == 'fragspect':
+        return None
     all_prots = Protein.objects.filter(target_id=target)
     for prot in all_prots:
         if prot.code not in xtal_list:
@@ -353,7 +357,7 @@ def load_from_dir(target_name, dir_path, app):
         print("No data to add: " + target_name)
         return None
     new_target = add_target(target_name)
-    projects = add_projects(new_target, dir_path)
+    projects = add_projects(new_target, dir_path, app=app)
     directories = sorted(os.listdir(dir_path))
     xtal_list = []
     for xtal in directories:
@@ -409,8 +413,7 @@ def load_from_dir(target_name, dir_path, app):
                 )
         else:
             print("File not found: " + xtal)
-    if app == 'fragalysis':
-        remove_not_added(new_target, xtal_list)
+        remove_not_added(new_target, xtal_list, app=app)
 
 
 def create_vect_3d(mol, new_vect, vect_ind, vector):
