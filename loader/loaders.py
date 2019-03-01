@@ -44,7 +44,8 @@ def add_prot(pdb_file_path, code, target, mtz_path=None, map_path=None, bound_pa
     """
     new_prot = Protein.objects.get_or_create(code=code, target_id=target)[0]
     new_prot.apo_holo = True
-    new_prot.pdb_info.save(os.path.basename(pdb_file_path), File(open(pdb_file_path)))
+    if pdb_file_path:
+        new_prot.pdb_info.save(os.path.basename(pdb_file_path), File(open(pdb_file_path)))
     if mtz_path:
         new_prot.mtz_info.save(os.path.basename(mtz_path), File(open(mtz_path)))
     if map_path:
@@ -373,8 +374,7 @@ def load_from_dir(target_name, dir_path):
         acc_path = get_path_or_none(new_path, xtal, input_dict, "ACC")
         don_path = get_path_or_none(new_path, xtal, input_dict, "DON")
         lip_path = get_path_or_none(new_path, xtal, input_dict, "LIP")
-        if (not pdb_file_path or not mol_file_path) or (not bound_path):
-            continue
+
         if os.path.isfile(pdb_file_path) and os.path.isfile(mol_file_path):
             new_prot = add_prot(
                 pdb_file_path, xtal, new_target, mtz_path=mtz_path, map_path=map_path, bound_path=bound_path
