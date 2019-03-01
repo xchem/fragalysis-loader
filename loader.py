@@ -25,11 +25,17 @@ if __name__ == "__main__":
 
     if os.path.isfile(os.path.join(prefix, fragalysis_list)):
         list_name = fragalysis_list
+        app = 'fragalysis'
+
     elif os.path.isfile(os.path.join(prefix, fragspect_list)):
         list_name = fragspect_list
+        app = 'fragspect'
+
+    else:
+        raise Exception('No target list for Fragalysis or Fragspect found!')
 
     targets_to_load = get_target_list(prefix, ln=list_name)
 
     for target_name in targets_to_load:
-        process_target(prefix, target_name)
+        process_target(prefix, target_name, app=app)
 
