@@ -426,18 +426,19 @@ def create_vect_3d(mol, new_vect, vect_ind, vector):
     :param vector: the vector coordinates - a 2*3 list of lists.
     :return: None
     """
-    new_vect3d = Vector3D.objects.get_or_create(
-        mol_id=mol, vector_id=new_vect, number=vect_ind
-    )[0]
-    # The start position
-    new_vect3d.start_x = float(vector[0][0])
-    new_vect3d.start_y = float(vector[0][1])
-    new_vect3d.start_z = float(vector[0][2])
-    # The end position
-    new_vect3d.end_x = float(vector[1][0])
-    new_vect3d.end_y = float(vector[1][1])
-    new_vect3d.end_z = float(vector[1][2])
-    new_vect3d.save()
+    if vector:
+        new_vect3d = Vector3D.objects.get_or_create(
+            mol_id=mol, vector_id=new_vect, number=vect_ind
+        )[0]
+        # The start position
+        new_vect3d.start_x = float(vector[0][0])
+        new_vect3d.start_y = float(vector[0][1])
+        new_vect3d.start_z = float(vector[0][2])
+        # The end position
+        new_vect3d.end_x = float(vector[1][0])
+        new_vect3d.end_y = float(vector[1][1])
+        new_vect3d.end_z = float(vector[1][2])
+        new_vect3d.save()
 
 
 def get_vectors(mols):
