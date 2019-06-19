@@ -361,7 +361,7 @@ def load_from_dir(target_name, dir_path, app):
     directories = sorted(os.listdir(dir_path))
     xtal_list = []
     for xtal in directories:
-        if not os.path.isdir(os.path.join(dir_path,xtal)):
+        if not os.path.isdir(os.path.join(dir_path, xtal)):
             continue
         print(xtal)
         xtal_list.append(xtal)
@@ -369,6 +369,7 @@ def load_from_dir(target_name, dir_path, app):
         pdb_file_path = get_path_or_none(new_path, xtal, input_dict, "APO")
         bound_path = get_path_or_none(new_path, xtal, input_dict, "BOUND")
         mol_file_path = get_path_or_none(new_path, xtal, input_dict, "MOL")
+        sdf_file_path = get_path_or_none(new_path, xtal, input_dict, "SDF")
         # using the pandda map for the target map file - for now
         map_path = get_path_or_none(new_path, xtal, input_dict, "PMAP")
         mtz_path = get_path_or_none(new_path, xtal, input_dict, "MTZ")
@@ -384,6 +385,10 @@ def load_from_dir(target_name, dir_path, app):
                     pdb_file_path, xtal, new_target, mtz_path=mtz_path, map_path=map_path, bound_path=bound_path
                 )
                 new_mol = add_mol(mol_file_path, new_prot, projects)
+
+                if sdf_file_path:
+                    new_mol = add_mol(sdf_file_path, new_prot, projects)
+
                 if not new_mol:
                     print("NONE MOL: " + xtal)
                 else:
