@@ -53,6 +53,10 @@ before_install:
 - echo ${PUBLISH_IMAGES}
 - echo ${TRIGGER_AWX}
 
+install:
+# Login to docker and download trigger code
+- docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+
 jobs:
   include:
 
