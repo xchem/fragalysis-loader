@@ -1,14 +1,44 @@
-sudo: required
+---
+os: linux
+language: python
+python:
+- '3.8'
 services:
-  - docker
-install:
-  - docker build -t xchem/fragalysis-loader .
-script:
-  -  docker-compose -f docker-compose.test.yml up --build  --exit-code-from tests --abort-on-container-exit
-after_success:
-  - if [ "$TRAVIS_BRANCH" == "master" ]; then
-    docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
-    docker push xchem/fragalysis-loader;
-    fi
-  - coveralls
+- docker
 
+stages:
+- name: test
+- name: publish latest
+  if: branch == master
+- name: publish tag
+  if: tag IS present
+- name: trigger
+  if: tag IS present AND tag =~ ^([0-9]+\.){1,2}[0-9]+$
+
+before_install:
+- export LOADER_NAMESPACE=${LOADER_NAMESPACE-xchem}
+
+jobs:
+  include:
+
+  # Publish-stage jobs...
+  # Every successful master build results in a latest image
+  # and every tag results in a tagged image in Docker Hub.
+  # Tags that match a REGEx are considered 'official' tags
+  # and also result in a 'stable' image tag.
+
+  - stage: publish latest
+    name: Latest Container
+    script:
+    - docker build -t ${LOADER_NAMESPACE}/fragalysis-loader:latest .
+    - docker push ${LOADER_NAMESPACE}/fragalysis-loader:latest
+
+  - stage: publish tag
+    name: Tagged Container
+    script:
+    - docker build -t ${LOADER_NAMESPACE}/fragalysis-loader:${TRAVIS_TAG} .
+    - docker push ${LOADER_NAMESPACE}/fragalysis-loader:${TRAVIS_TAG}
+    - if [ "${TRAVIS_TAG}" =~ ^([0-9]+\.){1,2}[0-9]+$ ]; then
+      docker tag ${LOADER_NAMESPACE}/fragalysis-loader:${TRAVIS_TAG} ${LOADER_NAMESPACE}/fragalysis-loader:stable;
+      docker push ${LOADER_NAMESPACE}/fragalysis-loader:stable;
+      fi
