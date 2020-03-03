@@ -18,7 +18,7 @@ stages:
 - name: test
 - name: publish latest
   if: |
-    branch = master \
+    branch = im-travis \
     AND env(PUBLISH_IMAGES) = yes
 - name: publish tag
   if: |

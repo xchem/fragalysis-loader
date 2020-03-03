@@ -11,7 +11,7 @@ services:
       MYSQL_PASSWORD: django_password
       MYSQL_USER: django
   tests:
-    image: ${LOADER_NAMESPACE}/fragalysis-loader
+    image: ${LOADER_NAMESPACE}/fragalysis-loader:latest
     command: ["/code/wait-for-it.sh", "mysql:3306", "--", "/bin/bash", "/code/test_entry.sh"]
     volumes:
     - ../logs:/code/logs/
