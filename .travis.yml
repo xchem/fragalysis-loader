@@ -53,10 +53,6 @@ before_install:
 - echo ${PUBLISH_IMAGES}
 - echo ${TRIGGER_AWX}
 
-install:
-# Login to docker and download trigger code
-- docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
-
 jobs:
   include:
 
@@ -69,18 +65,21 @@ jobs:
   - stage: publish latest
     name: Latest Container
     script:
+    - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
     - docker build -t ${LOADER_NAMESPACE}/fragalysis-loader:latest --build-arg BE_NAMESPACE=${BE_NAMESPACE} --build-arg BE_IMAGE_TAG=${BE_IMAGE_TAG} .
     - docker push ${LOADER_NAMESPACE}/fragalysis-loader:latest
 
   - stage: publish tag
     name: Tagged Container
     script:
+    - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
     - docker build -t ${LOADER_NAMESPACE}/fragalysis-loader:${TRAVIS_TAG} --build-arg BE_NAMESPACE=${BE_NAMESPACE} --build-arg BE_IMAGE_TAG=${BE_IMAGE_TAG} .
     - docker push ${LOADER_NAMESPACE}/fragalysis-loader:${TRAVIS_TAG}
 
   - stage: publish stable
     name: Stable Container
     script:
+    - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
     - docker pull ${LOADER_NAMESPACE}/fragalysis-loader:${TRAVIS_TAG}
     - docker tag ${LOADER_NAMESPACE}/fragalysis-loader:${TRAVIS_TAG} ${LOADER_NAMESPACE}/fragalysis-loader:stable
     - docker push ${LOADER_NAMESPACE}/fragalysis-loader:stable
