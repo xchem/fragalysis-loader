@@ -1,6 +1,6 @@
-ARG from_image="xchem/fragalysis-backend"
-ARG from_tag="latest"
-FROM ${from_image}:${from_tag}
+ARG BE_NAMESPACE="xchem"
+ARG BE_IMAGE_TAG="latest"
+FROM ${BE_NAMESPACE}/fragalysis-backend:${BE_IMAGE_TAG}
 ENV PYTHONUNBUFFERED 1
 ADD . /code/
 WORKDIR /code

@@ -1,4 +1,15 @@
 ---
+
+# In your Travis Settings...
+#
+# set PUBLISH_IMAGES to 'yes' to enable publishing to Docker Hub
+# and TRIGGER_AWX to 'yes' to enable AWX job triggering.
+# Enabling TRIGGER_AWX is only effective if PUBLISH_IMAGES is also set.
+#
+# AWX Jobs triggered by activity in this repository are: -
+#
+#   Fragalysis Stack Loader
+
 os: linux
 language: python
 python:
@@ -9,14 +20,41 @@ services:
 stages:
 - name: test
 - name: publish latest
-  if: branch == master
+  if: |
+    branch = master \
+    AND env(PUBLISH_IMAGES) = yes
 - name: publish tag
-  if: tag IS present
-- name: trigger
-  if: tag IS present AND tag =~ ^([0-9]+\.){1,2}[0-9]+$
+  if: |
+    tag IS present \
+    AND env(PUBLISH_IMAGES) = yes
+- name: publish stable
+  if: |
+    tag IS present \
+    AND tag =~ ^([0-9]+\.){1,2}[0-9]+$ \
+    AND env(PUBLISH_IMAGES) = yes
+- name: trigger awx
+  if: |
+    tag IS present \
+    AND tag =~ ^([0-9]+\.){1,2}[0-9]+$ \
+    AND env(PUBLISH_IMAGES) = yes \
+    AND env(TRIGGER_AWX) = yes
+
+# Global variables
+# (available to the Job matrix)...
+env:
+  global:
+  # The origin of the trigger code
+  - TRIGGER_ORIGIN=https://raw.githubusercontent.com/informaticsmatters/trigger-travis/master
 
 before_install:
 - export LOADER_NAMESPACE=${LOADER_NAMESPACE-xchem}
+- export BE_NAMESPACE=${BE_NAMESPACE-xchem}
+- export BE_IMAGE_TAG=${BE_IMAGE_TAG-latest}
+- echo ${LOADER_NAMESPACE}
+- echo ${BE_NAMESPACE}
+- echo ${BE_IMAGE_TAG}
+- echo ${PUBLISH_IMAGES}
+- echo ${TRIGGER_AWX}
 
 jobs:
   include:
@@ -24,21 +62,24 @@ jobs:
   # Publish-stage jobs...
   # Every successful master build results in a latest image
   # and every tag results in a tagged image in Docker Hub.
-  # Tags that match a REGEx are considered 'official' tags
+  # Tags that match a RegEx are considered 'official' tags
   # and also result in a 'stable' image tag.
 
   - stage: publish latest
     name: Latest Container
     script:
-    - docker build -t ${LOADER_NAMESPACE}/fragalysis-loader:latest .
+    - docker build -t ${LOADER_NAMESPACE}/fragalysis-loader:latest --build-arg BE_NAMESPACE=${BE_NAMESPACE} --build-arg BE_IMAGE_TAG=${BE_IMAGE_TAG} .
     - docker push ${LOADER_NAMESPACE}/fragalysis-loader:latest
 
   - stage: publish tag
     name: Tagged Container
     script:
-    - docker build -t ${LOADER_NAMESPACE}/fragalysis-loader:${TRAVIS_TAG} .
+    - docker build -t ${LOADER_NAMESPACE}/fragalysis-loader:${TRAVIS_TAG} --build-arg BE_NAMESPACE=${BE_NAMESPACE} --build-arg BE_IMAGE_TAG=${BE_IMAGE_TAG} .
     - docker push ${LOADER_NAMESPACE}/fragalysis-loader:${TRAVIS_TAG}
-    - if [ "${TRAVIS_TAG}" =~ ^([0-9]+\.){1,2}[0-9]+$ ]; then
-      docker tag ${LOADER_NAMESPACE}/fragalysis-loader:${TRAVIS_TAG} ${LOADER_NAMESPACE}/fragalysis-loader:stable;
-      docker push ${LOADER_NAMESPACE}/fragalysis-loader:stable;
-      fi
+
+  - stage: publish stable
+    name: Stable Container
+    script:
+    - docker pull ${LOADER_NAMESPACE}/fragalysis-loader:${TRAVIS_TAG}
+    - docker tag ${LOADER_NAMESPACE}/fragalysis-loader:${TRAVIS_TAG} ${LOADER_NAMESPACE}/fragalysis-loader:stable
+    - docker push ${LOADER_NAMESPACE}/fragalysis-loader:stable
