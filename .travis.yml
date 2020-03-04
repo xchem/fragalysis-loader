@@ -1,14 +1,24 @@
 ---
 
-# In your Travis Settings...
+# -----------------
+# Control variables (Travis Settings)
+# -----------------
 #
-# set PUBLISH_IMAGES to 'yes' to enable publishing to Docker Hub
-# and TRIGGER_AWX to 'yes' to enable AWX job triggering.
-# Enabling TRIGGER_AWX is only effective if PUBLISH_IMAGES is also set.
+# PUBLISH_IMAGES    Should be 'yes' to enable publishing to Docker Hub.
 #
-# AWX Jobs triggered by activity in this repository are: -
+# If you set PUBLISH_IMAGES you must also set the following: -
 #
-#   Fragalysis Stack Loader
+# DOCKER_USERNAME   If PUBLISH_IMAGES is 'yes'
+# DOCKER_PASSWORD   If PUBLISH_IMAGES is 'yes'
+#
+# You control the Stack container's source and destination image names with...
+#
+# BE_NAMESPACE      To over-ride the default namespace of the source backend
+#                   image (which is 'xchem')
+# BE_IMAGE_TAG      To over-ride the default tag of the source backend
+#                   (which is 'latest')
+# LOADER_NAMESPACE  To over-ride the default namespace of the produced
+#                   loader container image (which is 'xchem')
 
 os: linux
 services:
@@ -29,29 +39,18 @@ stages:
     tag IS present \
     AND tag =~ ^([0-9]+\.){1,2}[0-9]+$ \
     AND env(PUBLISH_IMAGES) = yes
-- name: trigger awx
-  if: |
-    tag IS present \
-    AND tag =~ ^([0-9]+\.){1,2}[0-9]+$ \
-    AND env(PUBLISH_IMAGES) = yes \
-    AND env(TRIGGER_AWX) = yes
-
-# Global variables
-# (available to the Job matrix)...
-env:
-  global:
-  # The origin of the trigger code
-  - TRIGGER_ORIGIN=https://raw.githubusercontent.com/informaticsmatters/trigger-travis/master
 
 before_install:
 - export LOADER_NAMESPACE=${LOADER_NAMESPACE-xchem}
 - export BE_NAMESPACE=${BE_NAMESPACE-xchem}
 - export BE_IMAGE_TAG=${BE_IMAGE_TAG-latest}
-- echo ${LOADER_NAMESPACE}
+
+before_script:
 - echo ${BE_NAMESPACE}
 - echo ${BE_IMAGE_TAG}
+- echo ${LOADER_NAMESPACE}
 - echo ${PUBLISH_IMAGES}
-- echo ${TRIGGER_AWX}
+- docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
 
 jobs:
   include:
@@ -65,21 +64,18 @@ jobs:
   - stage: publish latest
     name: Latest Container
     script:
-    - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
     - docker build -t ${LOADER_NAMESPACE}/fragalysis-loader:latest --build-arg BE_NAMESPACE=${BE_NAMESPACE} --build-arg BE_IMAGE_TAG=${BE_IMAGE_TAG} .
     - docker push ${LOADER_NAMESPACE}/fragalysis-loader:latest
 
   - stage: publish tag
     name: Tagged Container
     script:
-    - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
     - docker build -t ${LOADER_NAMESPACE}/fragalysis-loader:${TRAVIS_TAG} --build-arg BE_NAMESPACE=${BE_NAMESPACE} --build-arg BE_IMAGE_TAG=${BE_IMAGE_TAG} .
     - docker push ${LOADER_NAMESPACE}/fragalysis-loader:${TRAVIS_TAG}
 
   - stage: publish stable
     name: Stable Container
     script:
-    - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
     - docker pull ${LOADER_NAMESPACE}/fragalysis-loader:${TRAVIS_TAG}
     - docker tag ${LOADER_NAMESPACE}/fragalysis-loader:${TRAVIS_TAG} ${LOADER_NAMESPACE}/fragalysis-loader:stable
     - docker push ${LOADER_NAMESPACE}/fragalysis-loader:stable
