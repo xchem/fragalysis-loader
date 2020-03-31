@@ -20,6 +20,8 @@ from frag.alysis.run_clustering import run_lig_cluster
 from loader.functions import sanitize_mol, get_path_or_none
 from frag.network.decorate import get_3d_vects_for_mol
 from loader.config import get_dict
+import numpy as np
+import pandas as pd
 
 
 def add_target(title):
@@ -496,8 +498,31 @@ def cluster_mols(rd_mols, mols, target):
                 this_mol = Molecule.objects.get(id=mol_id)
                 mol_group.mol_id.add(this_mol)
 
+def process_site(rd_mols):
+    coms = [centre_of_mass(mol) for mol in rd_mols]
+    centre = centre_of_points(coms)
+    return centre
 
-def analyse_mols(mols, target):
+def centre_of_points(list_of_points):
+    cp = np.average(list_of_points[:, :3], axis=0)
+    return cp
+
+
+def centre_of_mass(mol, confId=-1):
+    numatoms = mol.GetNumAtoms()
+    conf = mol.GetConformer(confId)
+    if not conf.Is3D():
+        return 0
+    # get coordinate of each atoms
+    pts = np.array([list(conf.GetAtomPosition(atmidx)) for atmidx in range(numatoms)])
+    atoms = [atom for atom in mol.GetAtoms()]
+    mass = Descriptors.MolWt(mol)
+    # get center of mass
+    center_of_mass = np.array(np.sum(atoms[i].GetMass() * pts[i] for i in range(numatoms))) / mass
+    return center_of_mass
+
+
+def analyse_mols(mols, target, specified_site=False, site_description=None):
     """
     Analyse a list of molecules for a given target
     :param mols: the Django molecules to analyse
@@ -505,11 +530,32 @@ def analyse_mols(mols, target):
     :return: None
     """
     rd_mols = [Chem.MolFromMolBlock(x.sdf_info) for x in mols]
-    cluster_mols(rd_mols, mols, target)
+    if not specified_site:
+
+        cluster_mols(rd_mols, mols, target)
+    else:
+
+        centre = process_site(rd_mols)
+
+        mol_group = MolGroup()
+        mol_group.group_type = "MC"
+        mol_group.target_id = target
+        mol_group.x_com = centre[0]
+        mol_group.y_com = centre[1]
+        mol_group.z_com = centre[2]
+        mol_group.description = site_description
+        mol_group.save()
+
+        ids = [m.id for m in mols]
+
+        for mol_id in ids:
+            this_mol = Molecule.objects.get(id=mol_id)
+            mol_group.mol_id.add(this_mol)
+
     get_vectors(mols)
 
 
-def analyse_target(target_name):
+def analyse_target(target_name, target_path):
     """
     Analyse all the molecules for a particular target
     :param target_name: the name of the target
@@ -521,7 +567,24 @@ def analyse_target(target_name):
     # Delete the old ones for this target
     MolGroup.objects.filter(group_type="PC", target_id=target).delete()
     MolGroup.objects.filter(group_type="MC", target_id=target).delete()
-    analyse_mols(mols=mols, target=target)
+    if os.path.isfile(os.path.join(target_path, 'hits_ids.csv')) and os.path.isfile(
+            os.path.join(target_path, 'sites.csv')):
+        analyse_mols(mols=mols, target=target,
+                     specified_sites=os.path.join(target_path, 'sites.csv'),
+                     hit_sites=os.path.join(target_path, 'hits_ids.csv'))
+
+
+        hits_sites = pd.Dataframe.from_csv(os.path.join(target_path, 'hits_ids.csv'))
+        sites = pd.Dataframe.from_csv(os.path.join(target_path, 'sites.csv'))
+
+        for i, row in sites.iterrows():
+            description = row['site']
+            hit_ids = list(hits_sites['crystal_id'][hits_sites['site_number'] == i])
+            mols = list(Molecule.objects.filter(prot_id__target_id=target, prot_id__code__in=hit_ids))
+            analyse_mols(mols=mols, target=target, specified_site=True, site_description=description)
+
+    else:
+        analyse_mols(mols=mols, target=target)
 
 
 def process_target(prefix, target_name, app):
@@ -540,7 +603,7 @@ def process_target(prefix, target_name, app):
 
     if os.path.isfile(new_data_file):
         print("Analysing target: " + target_name)
-        analyse_target(target_name)
+        analyse_target(target_name, target_path)
         os.remove(new_data_file)
     else:
         print("NEW_DATA not found for " + target_path)
