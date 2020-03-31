@@ -498,19 +498,15 @@ def cluster_mols(rd_mols, mols, target):
                 this_mol = Molecule.objects.get(id=mol_id)
                 mol_group.mol_id.add(this_mol)
 
-def process_site(rd_mols):
-    coms = [centre_of_mass(mol) for mol in rd_mols]
-    centre = centre_of_points(coms)
-    return centre
 
 def centre_of_points(list_of_points):
-    cp = np.average(list_of_points[:, :3], axis=0)
+    cp = np.average(list_of_points, axis=0)
     return cp
 
 
-def centre_of_mass(mol, confId=-1):
+def centre_of_mass(mol):
     numatoms = mol.GetNumAtoms()
-    conf = mol.GetConformer(confId)
+    conf = mol.GetConformer()
     if not conf.Is3D():
         return 0
     # get coordinate of each atoms
@@ -520,6 +516,13 @@ def centre_of_mass(mol, confId=-1):
     # get center of mass
     center_of_mass = np.array(np.sum(atoms[i].GetMass() * pts[i] for i in range(numatoms))) / mass
     return center_of_mass
+
+
+def process_site(rd_mols):
+    coms = [centre_of_mass(mol) for mol in rd_mols]
+    centre = centre_of_points(coms)
+    print('CENTRE: ' + str(centre))
+    return centre
 
 
 def analyse_mols(mols, target, specified_site=False, site_description=None):
@@ -569,17 +572,15 @@ def analyse_target(target_name, target_path):
     MolGroup.objects.filter(group_type="MC", target_id=target).delete()
     if os.path.isfile(os.path.join(target_path, 'hits_ids.csv')) and os.path.isfile(
             os.path.join(target_path, 'sites.csv')):
-        analyse_mols(mols=mols, target=target,
-                     specified_sites=os.path.join(target_path, 'sites.csv'),
-                     hit_sites=os.path.join(target_path, 'hits_ids.csv'))
 
-
-        hits_sites = pd.Dataframe.from_csv(os.path.join(target_path, 'hits_ids.csv'))
-        sites = pd.Dataframe.from_csv(os.path.join(target_path, 'sites.csv'))
+        hits_sites = pd.read_csv(os.path.join(target_path, 'hits_ids.csv'))
+        sites = pd.read_csv(os.path.join(target_path, 'sites.csv'))
 
         for i, row in sites.iterrows():
             description = row['site']
+            print('Processing user input site: ' + description)
             hit_ids = list(hits_sites['crystal_id'][hits_sites['site_number'] == i])
+            print('HIT IDS: ' + str(hit_ids))
             mols = list(Molecule.objects.filter(prot_id__target_id=target, prot_id__code__in=hit_ids))
             analyse_mols(mols=mols, target=target, specified_site=True, site_description=description)
 
