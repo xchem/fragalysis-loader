@@ -70,15 +70,7 @@ def add_projects_to_cmpd(new_comp, projects):
     return new_comp
 
 
-def add_comp(mol, projects, option=None, comp_id=None):
-    """
-    Function to add a new compound to the database given an RDKit molecule
-    Takes an RDKit molecule.
-    :param mol: the input RDKit molecule
-    :param option: Option of LIG to return original smiles with the Compound object
-    :param comp_id: the Django compound it relates to
-    :return: a compound object for the RDKit molecule
-    """
+def calc_cpd(cpd_object, mol, projects):
     # Neutralise and desalt compound the compound
     sanitized_mol = sanitize_mol(mol)
     # Store the isomeric smiles
@@ -92,41 +84,62 @@ def add_comp(mol, projects, option=None, comp_id=None):
         sys.stderr.write("INCHI ERROR: " + inchi)
     else:
         inchi = Chem.MolToInchi(tmp_mol)
-    # Now attribute all this meta-deta to the compound object
-    new_comp = Compound()
-    new_comp.smiles = smiles
+
+    cpd_object.smiles = smiles
     if len(smiles) > Compound._meta.get_field("smiles").max_length:
         print("SMILES TOO LONG")
         return None
-    new_comp.inchi = inchi
+    cpd_object.inchi = inchi
     m = sanitized_mol
 
     if m is None:
         sys.stderr.write("NONE MOLECULE PRODUCED\n" + smiles + "\n" + inchi)
         return None
-    new_comp.mol_log_p = Chem.Crippen.MolLogP(m)
-    new_comp.mol_wt = float(Chem.rdMolDescriptors.CalcExactMolWt(m))
-    new_comp.heavy_atom_count = Chem.Lipinski.HeavyAtomCount(m)
-    new_comp.heavy_atom_mol_wt = float(Descriptors.HeavyAtomMolWt(m))
-    new_comp.nhoh_count = Chem.Lipinski.NHOHCount(m)
-    new_comp.no_count = Chem.Lipinski.NOCount(m)
-    new_comp.num_h_acceptors = Chem.Lipinski.NumHAcceptors(m)
-    new_comp.num_h_donors = Chem.Lipinski.NumHDonors(m)
-    new_comp.num_het_atoms = Chem.Lipinski.NumHeteroatoms(m)
-    new_comp.num_rot_bonds = Chem.Lipinski.NumRotatableBonds(m)
-    new_comp.num_val_electrons = Descriptors.NumValenceElectrons(m)
-    new_comp.ring_count = Chem.Lipinski.RingCount(m)
-    new_comp.tpsa = Chem.rdMolDescriptors.CalcTPSA(m)
+    cpd_object.mol_log_p = Chem.Crippen.MolLogP(m)
+    cpd_object.mol_wt = float(Chem.rdMolDescriptors.CalcExactMolWt(m))
+    cpd_object.heavy_atom_count = Chem.Lipinski.HeavyAtomCount(m)
+    cpd_object.heavy_atom_mol_wt = float(Descriptors.HeavyAtomMolWt(m))
+    cpd_object.nhoh_count = Chem.Lipinski.NHOHCount(m)
+    cpd_object.no_count = Chem.Lipinski.NOCount(m)
+    cpd_object.num_h_acceptors = Chem.Lipinski.NumHAcceptors(m)
+    cpd_object.num_h_donors = Chem.Lipinski.NumHDonors(m)
+    cpd_object.num_het_atoms = Chem.Lipinski.NumHeteroatoms(m)
+    cpd_object.num_rot_bonds = Chem.Lipinski.NumRotatableBonds(m)
+    cpd_object.num_val_electrons = Descriptors.NumValenceElectrons(m)
+    cpd_object.ring_count = Chem.Lipinski.RingCount(m)
+    cpd_object.tpsa = Chem.rdMolDescriptors.CalcTPSA(m)
     # Validate that the compound is unique
     try:
-        new_comp.validate_unique()
-        new_comp.save()
-        new_comp = add_projects_to_cmpd(new_comp, projects)
-        return new_comp
+        cpd_object.validate_unique()
+        cpd_object.save()
+        cpd_object = add_projects_to_cmpd(cpd_object, projects)
+        return cpd_object
     except ValidationError:
-        new_comp = Compound.objects.get(inchi=inchi)
-        new_comp = add_projects_to_cmpd(new_comp, projects)
-        return new_comp
+        cpd_object = Compound.objects.get(inchi=inchi)
+        cpd_object = add_projects_to_cmpd(cpd_object, projects)
+        return cpd_object
+
+
+def update_cpd(cpd_id, mol, projects):
+    cpd = Compound.objects.get(cmpd_id=cpd_id)
+    comp = calc_cpd(cpd, mol, projects)
+    return comp
+
+
+def add_comp(mol, projects, option=None, comp_id=None):
+    """
+    Function to add a new compound to the database given an RDKit molecule
+    Takes an RDKit molecule.
+    :param mol: the input RDKit molecule
+    :param option: Option of LIG to return original smiles with the Compound object
+    :param comp_id: the Django compound it relates to
+    :return: a compound object for the RDKit molecule
+    """
+
+    # Now attribute all this meta-deta to the compound object
+    new_comp = Compound()
+    comp = calc_cpd(new_comp, mol, projects)
+    return comp
 
 
 def add_mol(mol_sd, prot, projects, lig_id="LIG", chaind_id="Z", occupancy=0.0):
@@ -139,11 +152,28 @@ def add_mol(mol_sd, prot, projects, lig_id="LIG", chaind_id="Z", occupancy=0.0):
     :param occupancy: the occupancy
     :return: the created molecule
     """
+    # create mol object from mol_sd
     rd_mol = Chem.MolFromMolFile(mol_sd)
+
     if rd_mol is None:
         return None
-    # Get the reference compound
-    comp_ref = add_comp(rd_mol, projects)
+
+    # See if there is already a molecule with a compound
+    old_mols = Molecule.objects.filter(prot_id=prot)
+    # If there's only one
+    if len(old_mols)==1:
+        # find the right id (if it exists)
+        cpd_id = old_mols[0].cmpd_id
+        if cpd_id:
+            # update existing compound
+            comp_ref = update_cpd(cpd_id, mol_sd, projects)
+        else:
+            # create new if there's no cpd already
+            comp_ref = add_comp(rd_mol, projects)
+
+    else:
+        comp_ref = add_comp(rd_mol, projects)
+
     new_mol = Molecule.objects.get_or_create(prot_id=prot, cmpd_id=comp_ref)[0]
     # Make a protein object by which it is related in the DB
     new_mol.sdf_info = Chem.MolToMolBlock(rd_mol)
@@ -483,7 +513,13 @@ def cluster_mols(rd_mols, mols, target):
     out_data = run_lig_cluster(rd_mols, id_mols)
     for clust_type in out_data:
         for cluster in out_data[clust_type]:
-            mol_group = MolGroup()
+            # look for molgroup with same coords - need to implement tolerance?
+            mol_group = search_for_molgroup_by_coords(coords=[out_data[clust_type][cluster]["centre_of_mass"][0],
+                                                              out_data[clust_type][cluster]["centre_of_mass"][1],
+                                                              out_data[clust_type][cluster]["centre_of_mass"][2]],
+                                                      target=target.title)
+            if not mol_group:
+                mol_group = MolGroup()
             if clust_type != "c_of_m":
                 mol_group.group_type = "PC"
             else:
@@ -495,8 +531,9 @@ def cluster_mols(rd_mols, mols, target):
             mol_group.description = clust_type
             mol_group.save()
             for mol_id in out_data[clust_type][cluster]["mol_ids"]:
-                this_mol = Molecule.objects.get(id=mol_id)
-                mol_group.mol_id.add(this_mol)
+                if mol_id not in [a['id'] for a in mol_group.mol_id.values()]:
+                    this_mol = Molecule.objects.get(id=mol_id)
+                    mol_group.mol_id.add(this_mol)
 
 
 def centre_of_points(list_of_points):
@@ -525,6 +562,51 @@ def process_site(rd_mols):
     return centre
 
 
+def get_coord_limits(coord):
+    lower_limit = float('.'.join([str(coord).split('.')[0], str(coord).split('.')[1][:2]]))
+    if lower_limit > 0:
+        upper_limit = lower_limit + 0.01
+    else:
+        tmp = lower_limit - 0.01
+        upper_limit = lower_limit
+        lower_limit = tmp
+    return lower_limit, upper_limit
+
+
+def search_for_molgroup_by_coords(coords, target):
+    x = coords[0]
+    y = coords[1]
+    z = coords[2]
+
+    limit_list = []
+
+    for coord in x, y, z:
+        lower, upper = get_coord_limits(coord)
+        limit_list.append([lower, upper])
+
+    search = MolGroup.objects.filter(target_id__title=target, x_com__gte=limit_list[0][0], x_com__lte=limit_list[0][1],
+                                     y_com__gte=limit_list[1][0], y_com__lte=limit_list[1][1],
+                                     z_com__gte=limit_list[2][0],
+                                     z_com__lte=limit_list[2][1])
+
+    if len(search) == 1:
+        mol_group = search[0]
+    else:
+        return None
+
+    return mol_group
+
+
+def search_for_molgroup_by_description(description, target):
+    search = MolGroup.objects.filter(target_id__title=target, description=description)
+    if len(search)==1:
+        mol_group = search[0]
+    else:
+        return None
+
+    return mol_group
+
+
 def analyse_mols(mols, target, specified_site=False, site_description=None):
     """
     Analyse a list of molecules for a given target
@@ -536,11 +618,16 @@ def analyse_mols(mols, target, specified_site=False, site_description=None):
     if not specified_site:
 
         cluster_mols(rd_mols, mols, target)
+
     else:
 
         centre = process_site(rd_mols)
 
-        mol_group = MolGroup()
+        # look for molgroup with same target and description
+        mol_group = search_for_molgroup_by_description(target=target.title, description=site_description)
+
+        if not mol_group:
+            mol_group = MolGroup()
         mol_group.group_type = "MC"
         mol_group.target_id = target
         mol_group.x_com = centre[0]
@@ -552,8 +639,9 @@ def analyse_mols(mols, target, specified_site=False, site_description=None):
         ids = [m.id for m in mols]
 
         for mol_id in ids:
-            this_mol = Molecule.objects.get(id=mol_id)
-            mol_group.mol_id.add(this_mol)
+            if mol_id not in [a['id'] for a in mol_group.mol_id.values()]:
+                this_mol = Molecule.objects.get(id=mol_id)
+                mol_group.mol_id.add(this_mol)
 
     get_vectors(mols)
 
@@ -567,9 +655,9 @@ def analyse_target(target_name, target_path):
     target = Target.objects.get(title=target_name)
     mols = list(Molecule.objects.filter(prot_id__target_id=target))
     print("Analysing " + str(len(mols)) + " molecules for " + target_name)
-    # Delete the old ones for this target
-    MolGroup.objects.filter(group_type="PC", target_id=target).delete()
-    MolGroup.objects.filter(group_type="MC", target_id=target).delete()
+    # Delete the old ones for this target - don't delete! UPDATE...
+    # MolGroup.objects.filter(group_type="PC", target_id=target).delete()
+    # MolGroup.objects.filter(group_type="MC", target_id=target).delete()
     if os.path.isfile(os.path.join(target_path, 'hits_ids.csv')) and os.path.isfile(
             os.path.join(target_path, 'sites.csv')):
 
