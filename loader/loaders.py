@@ -1,4 +1,4 @@
-import sys, json, os
+import sys, json, os, glob
 from django.contrib.auth.models import User
 from viewer.models import Target, Protein, Molecule, Compound, Project
 from hypothesis.models import (
@@ -22,16 +22,18 @@ from frag.network.decorate import get_3d_vects_for_mol
 from loader.config import get_dict
 import numpy as np
 import pandas as pd
+from rdkit.Geometry import Point3D
 
 
 def add_target(title):
     """
     Add a target
-    :param title: add a target by titlte
+    :param title: add a target by title
     :return: the created target
     """
-    new_target = Target.objects.get_or_create(title=title)[0]
-    return new_target
+    new_target = Target.objects.get_or_create(title=title)
+    print('Target created = ' +str(Target.objects.get_or_create(title=title)[1]))
+    return new_target[0]
 
 
 def add_prot(pdb_file_path, code, target, mtz_path=None, map_path=None, bound_path=None):
@@ -44,15 +46,21 @@ def add_prot(pdb_file_path, code, target, mtz_path=None, map_path=None, bound_pa
     :param map_path: the path to the MAP file
     :return: the created protein
     """
-    new_prot = Protein.objects.get_or_create(code=code, target_id=target)[0]
+    new_prot = Protein.objects.get_or_create(code=code, target_id=target)
+    print('Protein created = ' + str(new_prot[1]))
+    new_prot = new_prot[0]
     new_prot.apo_holo = True
     if pdb_file_path:
+        new_prot.pdb_info.delete()
         new_prot.pdb_info.save(os.path.basename(pdb_file_path), File(open(pdb_file_path)))
     if mtz_path:
+        new_prot.mtz_info.delete()
         new_prot.mtz_info.save(os.path.basename(mtz_path), File(open(mtz_path)))
     if map_path:
+        new_prot.map_info.delete()
         new_prot.map_info.save(os.path.basename(map_path), File(open(map_path)))
     if bound_path:
+        new_prot.bound_info.delete()
         new_prot.bound_info.save(os.path.basename(bound_path), File(open(bound_path)))
     new_prot.save()
     return new_prot
@@ -121,7 +129,8 @@ def calc_cpd(cpd_object, mol, projects):
 
 
 def update_cpd(cpd_id, mol, projects):
-    cpd = Compound.objects.get(cmpd_id=cpd_id)
+    print(mol)
+    cpd = cpd_id
     comp = calc_cpd(cpd, mol, projects)
     return comp
 
@@ -160,13 +169,15 @@ def add_mol(mol_sd, prot, projects, lig_id="LIG", chaind_id="Z", occupancy=0.0):
 
     # See if there is already a molecule with a compound
     old_mols = Molecule.objects.filter(prot_id=prot)
+
+    print('OLD MOLS = ' + str(len(old_mols)))
     # If there's only one
     if len(old_mols)==1:
         # find the right id (if it exists)
         cpd_id = old_mols[0].cmpd_id
         if cpd_id:
             # update existing compound
-            comp_ref = update_cpd(cpd_id, mol_sd, projects)
+            comp_ref = update_cpd(cpd_id, rd_mol, projects)
         else:
             # create new if there's no cpd already
             comp_ref = add_comp(rd_mol, projects)
@@ -323,7 +334,7 @@ def add_projects(new_target, dir_path, app):
         projects.extend(add_visits_or_proposal(new_target, proposal_path))
     if os.path.isfile(visit_path):
         projects.extend(add_visits_or_proposal(new_target, visit_path))
-    remove_not_added(new_target, projects, app=app)
+    # remove_not_added(new_target, projects, app=app)
     return projects
 
 
@@ -373,6 +384,35 @@ def save_confidence(mol, file_path, annotation_type="ligand_confidence"):
                 mol_annot.save()
         else:
             print(val+ " not found in " + str(input_dict) + " for mol " + str(mol.prot_id.code))
+
+
+def add_biomol_remark(search_path):
+    biomol_remark = open(search_path + '/biomol.txt').readlines()
+    print(biomol_remark)
+    for f in glob.glob(search_path + '/*/*.pdb'):
+        print(f)
+        with open(f) as handle:
+            switch = 0
+            header_front, header_end = [], []
+            pdb = []
+
+            for line in handle:
+
+                if line.startswith('ATOM'): switch = 1
+
+                if line.startswith('HETATM'): switch = 2
+
+                if switch == 0:
+                    header_front.append(line)
+
+                elif (switch == 2) and not line.startswith('HETATM'):
+                    header_end.append(line)
+
+                else:
+                    pdb.append(line)
+        full_file = ''.join(header_front) + ''.join(biomol_remark) + ''.join(pdb) + ''.join(header_end)
+        with open(f, 'w') as w:
+            w.write(full_file)
 
 
 def load_from_dir(target_name, dir_path, app):
@@ -445,7 +485,7 @@ def load_from_dir(target_name, dir_path, app):
                 )
         else:
             print("File not found: " + xtal)
-        remove_not_added(new_target, xtal_list, app=app)
+    remove_not_added(new_target, xtal_list, app=app)
 
 
 def create_vect_3d(mol, new_vect, vect_ind, vector):
@@ -599,8 +639,14 @@ def search_for_molgroup_by_coords(coords, target):
 
 def search_for_molgroup_by_description(description, target):
     search = MolGroup.objects.filter(target_id__title=target, description=description)
+    print(str('matching_sites = ')+str(len(search)))
     if len(search)==1:
         mol_group = search[0]
+
+    elif len(search) >1:
+        for molgroup in search:
+            molgroup.delete()
+        return None
     else:
         return None
 
@@ -638,12 +684,16 @@ def analyse_mols(mols, target, specified_site=False, site_description=None):
 
         ids = [m.id for m in mols]
 
+        print([a['id'] for a in mol_group.mol_id.values()])
+
         for mol_id in ids:
             if mol_id not in [a['id'] for a in mol_group.mol_id.values()]:
+                print(mol_id)
                 this_mol = Molecule.objects.get(id=mol_id)
                 mol_group.mol_id.add(this_mol)
 
     get_vectors(mols)
+
 
 
 def analyse_target(target_name, target_path):
@@ -675,6 +725,75 @@ def analyse_target(target_name, target_path):
     else:
         analyse_mols(mols=mols, target=target)
 
+def write_lig_pdb(pdb):
+    f = open('lig.pdb', 'w')
+    lig_atoms = []
+    link_info = None
+    for line in pdb:
+        if line.startswith('LINK'):
+            f.write(line)
+            link_info = [line[13]]+[line[42:46].strip()]+line[47:62].strip().split(' ')
+        if line[17:20] == 'LIG' and line.startswith('HETATM'):
+            lig_atoms.append(line[7:11].strip())
+            f.write(line)
+        if line.startswith('CONECT'):
+            yes = False
+            for num in line.split(' '):
+                if num in lig_atoms:
+                    yes = True
+            if yes == True:
+                f.write(line)
+    f.close()
+    return link_info
+
+
+def get_3d_distance(coord_a, coord_b):
+    sum_ = (sum([(float(coord_a[i])-float(coord_b[i]))**2 for i in range(3)]))
+    return np.sqrt(sum_)
+
+
+def process_covalent(directory):
+    link_atoms = {'SG': 16, 'O': 8, 'N': 7}
+    print([x[0] for x in os.walk(directory)])
+    for f in [x[0] for x in os.walk(directory)]:
+        print(str(f) + '/*_bound.pdb')
+        print(glob.glob(str(f) + '/*_bound.pdb'))
+        if glob.glob(str(f) + '/*_bound.pdb'):
+            bound_pdb = glob.glob(str(f) + '/*_bound.pdb')[0]
+            mol_file = glob.glob(str(f) + '/*.mol')[0]
+            pdb = open(bound_pdb, 'r').readlines()
+
+            link_info = write_lig_pdb(pdb)
+            if link_info is not None:
+                m2 = Chem.MolFromPDBFile('lig.pdb')
+
+                for line in pdb:
+                    if line[13:17].strip() == link_info[1] and line[17:20] == link_info[2] and line[20:23].strip() == \
+                            link_info[3] and line[23:27].strip() == link_info[4]:
+                        res_coords = [line[31:39].strip(), line[39:47].strip(), line[47:55].strip()]
+
+                edmol = Chem.EditableMol(m2)
+                new_mol = edmol.AddAtom(Chem.Atom(link_atoms[link_info[1]]))
+                Chem.MolToPDBFile(edmol.GetMol(), 'edlig.pdb')
+                edpdb = open('edlig.pdb', 'r').readlines()
+
+                distances = {}
+                for line in edpdb:
+                    if line.startswith('HETATM'):
+                        distances[get_3d_distance(res_coords,
+                                                  [line[31:39].strip(), line[39:47].strip(), line[47:55].strip()])] = line[
+                                                                                                                      7:11].strip()
+                    if [line[31:39].strip(), line[39:47].strip(), line[47:55].strip()] == ['0.000', '0.000', '0.000']:
+                        new_idx = line[7:11].strip()
+
+                edmol.AddBond(int(distances[min(distances)]) - 1, int(new_idx) - 1, Chem.BondType.SINGLE)
+
+                new_mol = edmol.GetMol()
+                conf = new_mol.GetConformer()
+                res_coords = tuple([float(i) for i in res_coords])
+                conf.SetAtomPosition(int(new_idx) - 1, Point3D(res_coords[0], res_coords[1], res_coords[2]))
+                Chem.MolToMolFile(new_mol, mol_file)
+
 
 def process_target(prefix, target_name, app):
     """
@@ -684,6 +803,11 @@ def process_target(prefix, target_name, app):
     :return:
     """
     target_path = os.path.join(prefix, target_name)
+    print('TARGET_PATH: ' + target_path)
+    process_covalent(target_path)
+    if os.path.isfile(os.path.join(target_path, 'biomol.txt')):
+        print('ADDING BIOMOL REMARK')
+        add_biomol_remark(search_path=target_path)
     load_from_dir(target_name, target_path, app=app)
     # Check for new data
     new_data_file = os.path.join(target_path, "NEW_DATA")
