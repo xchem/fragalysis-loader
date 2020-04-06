@@ -97,7 +97,11 @@ def calc_cpd(cpd_object, mol, projects):
     if len(smiles) > Compound._meta.get_field("smiles").max_length:
         print("SMILES TOO LONG")
         return None
-    cpd_object.inchi = inchi
+    if not len(inchi) > 255:
+        cpd_object.inchi = inchi
+    else:
+        print("INCHI TOO LONG")
+        inchi = None
     m = sanitized_mol
 
     if m is None:
@@ -123,6 +127,8 @@ def calc_cpd(cpd_object, mol, projects):
         cpd_object = add_projects_to_cmpd(cpd_object, projects)
         return cpd_object
     except ValidationError:
+        if not inchi:
+            cpd_object.save()
         cpd_object = Compound.objects.get(inchi=inchi)
         cpd_object = add_projects_to_cmpd(cpd_object, projects)
         return cpd_object
