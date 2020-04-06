@@ -97,11 +97,11 @@ def calc_cpd(cpd_object, mol, projects):
     if len(smiles) > Compound._meta.get_field("smiles").max_length:
         print("SMILES TOO LONG")
         return None
-    if not len(inchi) > 255:
+    if not len(inchi) > 500:
         cpd_object.inchi = inchi
     else:
         print("INCHI TOO LONG")
-        inchi = None
+        return None
     m = sanitized_mol
 
     if m is None:
