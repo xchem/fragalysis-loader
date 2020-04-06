@@ -191,20 +191,23 @@ def add_mol(mol_sd, prot, projects, lig_id="LIG", chaind_id="Z", occupancy=0.0):
     else:
         comp_ref = add_comp(rd_mol, projects)
 
-    new_mol = Molecule.objects.get_or_create(prot_id=prot, cmpd_id=comp_ref)[0]
-    # Make a protein object by which it is related in the DB
-    new_mol.sdf_info = Chem.MolToMolBlock(rd_mol)
-    new_mol.smiles = Chem.MolToSmiles(rd_mol, isomericSmiles=True)
-    # Find out how to add this information from Proasis
-    new_mol.lig_id = lig_id
-    new_mol.chain_id = chaind_id
-    new_mol.occupancy = occupancy
-    # Add this to the compound list -> make sure this passes in for the
-    # correct molecule. I.e. if it fails where does it go???
-    # Now link that compound back
-    new_mol.cmpd_id = comp_ref
-    new_mol.save()
-    return new_mol
+    if comp_ref:
+        new_mol = Molecule.objects.get_or_create(prot_id=prot, cmpd_id=comp_ref)[0]
+        # Make a protein object by which it is related in the DB
+        new_mol.sdf_info = Chem.MolToMolBlock(rd_mol)
+        new_mol.smiles = Chem.MolToSmiles(rd_mol, isomericSmiles=True)
+        # Find out how to add this information from Proasis
+        new_mol.lig_id = lig_id
+        new_mol.chain_id = chaind_id
+        new_mol.occupancy = occupancy
+        # Add this to the compound list -> make sure this passes in for the
+        # correct molecule. I.e. if it fails where does it go???
+        # Now link that compound back
+        new_mol.cmpd_id = comp_ref
+        new_mol.save()
+        return new_mol
+    else:
+        return None
 
 
 def parse_proasis(input_string):
