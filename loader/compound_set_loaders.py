@@ -1,13 +1,21 @@
 from rdkit import Chem
-from viewer.models import Target, CompoundSet, ComputedCompound, ScoreDescription, ScoreValues, Protein
+from viewer.models import (
+    Target,
+    CompoundSet,
+    ComputedCompound,
+    ScoreDescription,
+    NumericalScoreValues,
+    TextScoreValues,
+    Protein)
 import ast
 import os.path
 
+
 def dataType(str):
-    str=str.strip()
+    str = str.strip()
     if len(str) == 0: return 'BLANK'
     try:
-        t=ast.literal_eval(str)
+        t = ast.literal_eval(str)
 
     except ValueError:
         return 'TEXT'
@@ -44,15 +52,15 @@ def get_prot(mol, compound_set, filename):
 
 def set_props(cpd, props, compound_set):
     if 'ref_mols' and 'ref_pdb' not in props.keys():
-        raise Exception('ref mol and ref_pd not set!')
+        raise Exception('ref_mols and ref_pdb not set!')
     set_obj = ScoreDescription.objects.filter(compound_set=compound_set)
     set_props_list = [s.name for s in set_obj]
     for key in props.keys():
         if key in set_props_list:
             if dataType(str(props[key]))=='TEXT':
-                print('property: ' + key + ' ignored: not bool or float')
-                continue
-            score_value = ScoreValues()
+                score_value = TextScoreValues()
+            else:
+                score_value = NumericalScoreValues()
             score_value.score = ScoreDescription.objects.get(compound_set=compound_set,
                                                              name=key)
             score_value.value = props[key]
@@ -92,6 +100,10 @@ def set_descriptions(filename, compound_set):
     suppl = Chem.SDMolSupplier(filename)
     description_mol = suppl[0]
     description_dict = description_mol.GetPropsAsDict()
+    version = description_mol.GetProp('_Name')
+    compound_set.spec_version = version.split('_')[-1]
+    compound_set.save()
+
     for key in description_dict.keys():
         desc = ScoreDescription()
         desc.compound_set = compound_set
@@ -110,12 +122,13 @@ def process_compound_set(target, filename):
     print('processing compound set: ' + filename)
 
     # create a new compound set
-    set_name = filename.split('/')[-1].replace('.sdf','').split('_')[1:]
+    set_name = ''.join(filename.split('/')[-1].replace('.sdf','').split('_')[1:])
     compound_set = CompoundSet()
     compound_set.name = set_name
     matching_target = Target.objects.get(title=target)
     compound_set.target = matching_target
-    compound_set.save()
+    compound_set.submitted_sdf = filename
+
 
     # set descriptions and get all other mols back
     mols_to_process = set_descriptions(filename=filename, compound_set=compound_set)
@@ -124,4 +137,15 @@ def process_compound_set(target, filename):
     for mol in mols_to_process:
         process_mol(mol, compound_set, filename)
 
+    # check that molecules have been added to the compound set
+    check = ComputedCompound.objects.filter(compound_set=compound_set)
+    print(str(len(check)) + '/' + str(len(mols_to_process)) + ' succesfully processed in ' + set_name + ' cpd set')
+
+    # save the compound set
+    compound_set.save()
+
+    # if no molecules were processed, delete the compound set
+    if len(check) == 0:
+        compound_set.delete()
+        print('No molecules processed... deleting ' + set_name + ' compound set')
 
