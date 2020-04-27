@@ -1,5 +1,6 @@
 import os
 import glob
+from viewer.compound_sets import process_compound_set
 
 
 def get_target_list(base_path, ln):
@@ -18,7 +19,7 @@ if __name__ == "__main__":
 
     django.setup()
     from loader.loaders import process_target
-    from loader.compound_set_loaders import process_compound_set
+    from viewer.compound_sets import process_compound_set
 
     prefix = "/code/media/NEW_DATA/"
 
