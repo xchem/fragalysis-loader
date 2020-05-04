@@ -762,7 +762,7 @@ def get_3d_distance(coord_a, coord_b):
 
 
 def process_covalent(directory):
-    link_atoms = {'SG': 16, 'O': 8, 'N': 7}
+    link_atoms = {'SG': 16, 'O': 8, 'N': 7, 'C':12, 'C5':12}
     print([x[0] for x in os.walk(directory)])
     for f in [x[0] for x in os.walk(directory)]:
         print(str(f) + '/*_bound.pdb')
@@ -779,7 +779,12 @@ def process_covalent(directory):
                 for line in pdb:
                     if line[13:17].strip() == link_info[1] and line[17:20] == link_info[2] and line[20:23].strip() == \
                             link_info[3] and line[23:27].strip() == link_info[4]:
-                        res_coords = [line[31:39].strip(), line[39:47].strip(), line[47:55].strip()]
+                        # res_coords = [line[31:39].strip(), line[39:47].strip(), line[47:55].strip()]
+                        try:
+                            res_coords = [float(line[31:39].strip()), float(line[39:47].strip()),
+                                          float(line[47:55].strip())]
+                        except ValueError:
+                            pass
 
                 edmol = Chem.EditableMol(m2)
                 new_mol = edmol.AddAtom(Chem.Atom(link_atoms[link_info[1]]))
