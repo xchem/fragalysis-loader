@@ -785,7 +785,7 @@ def new_process_covalent(directory):
                     res_y = float(line[39:47])
                     res_z = float(line[47:55])
                     res_atom_sym = line.rsplit()[-1].rstrip()
-                    atom_sym_no = pd.DataFrame.from_csv('atom_numbers.csv')
+                    atom_sym_no = pd.DataFrame.from_csv('loader/atom_numbers.csv')
                     res_atom_no = atom_sym_no.loc[res_atom_sym].number
                     res_coords = [res_x, res_y, res_z]
                     print(res_coords)
