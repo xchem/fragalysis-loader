@@ -1,4 +1,5 @@
 #!/bin/bash
+export DJANGO_SETTINGS_MODULE=fragalysis.settings
 echo "Running loader..."
 python loader.py
 script="
