@@ -763,9 +763,12 @@ def get_3d_distance(coord_a, coord_b):
 
 def new_process_covalent(directory):
     for f in [x[0] for x in os.walk(directory)]:
+        covalent = False
+        
         print(str(f) + '/*_bound.pdb')
         print(glob.glob(str(f) + '/*_bound.pdb'))
         if glob.glob(str(f) + '/*_bound.pdb'):
+
             bound_pdb = glob.glob(str(f) + '/*_bound.pdb')[0]
             mol_file = glob.glob(str(f) + '/*.mol')[0]
             pdb = open(bound_pdb, 'r').readlines()
@@ -779,51 +782,53 @@ def new_process_covalent(directory):
 
                     if 'LIG' in one:
                         res = zero
-            for line in pdb:
-                if 'ATOM' in line and line[13:27]==res:
-                    res_x = float(line[31:39])
-                    res_y = float(line[39:47])
-                    res_z = float(line[47:55])
-                    res_atom_sym = line.rsplit()[-1].rstrip()
-                    atom_sym_no = pd.DataFrame.from_csv('loader/atom_numbers.csv')
-                    res_atom_no = atom_sym_no.loc[res_atom_sym].number
-                    res_coords = [res_x, res_y, res_z]
-                    print(res_coords)
-                    atm = Chem.MolFromPDBBlock(line)
-                    atm_trans = atm.GetAtomWithIdx(0)
+                    covalent=True
+            if covalent:
+                for line in pdb:
+                    if 'ATOM' in line and line[13:27]==res:
+                        res_x = float(line[31:39])
+                        res_y = float(line[39:47])
+                        res_z = float(line[47:55])
+                        res_atom_sym = line.rsplit()[-1].rstrip()
+                        atom_sym_no = pd.DataFrame.from_csv('loader/atom_numbers.csv')
+                        res_atom_no = atom_sym_no.loc[res_atom_sym].number
+                        res_coords = [res_x, res_y, res_z]
+                        print(res_coords)
+                        atm = Chem.MolFromPDBBlock(line)
+                        atm_trans = atm.GetAtomWithIdx(0)
 
-            mol = Chem.MolFromMolFile(mol_file)
-            # edmol = Chem.EditableMol(mol)
+                mol = Chem.MolFromMolFile(mol_file)
+                # edmol = Chem.EditableMol(mol)
 
-            orig_pdb_block = Chem.MolToPDBBlock(mol)
+                orig_pdb_block = Chem.MolToPDBBlock(mol)
 
-            lig_block = '\n'.join([l for l in orig_pdb_block.split('\n') if 'COMPND' not in l])
-            lig_lines = [l for l in lig_block.split('\n') if 'HETATM' in l]
-            j = 0
-            old_dist = 100
-            for line in lig_lines:
-                j += 1
-                #                 print(line)
-                if 'HETATM' in line:
-                    coords = [line[31:39].strip(), line[39:47].strip(), line[47:55].strip()]
-                    dist = get_3d_distance(coords, res_coords)
+                lig_block = '\n'.join([l for l in orig_pdb_block.split('\n') if 'COMPND' not in l])
+                lig_lines = [l for l in lig_block.split('\n') if 'HETATM' in l]
+                j = 0
+                old_dist = 100
+                for line in lig_lines:
+                    j += 1
+                    #                 print(line)
+                    if 'HETATM' in line:
+                        coords = [line[31:39].strip(), line[39:47].strip(), line[47:55].strip()]
+                        dist = get_3d_distance(coords, res_coords)
 
-                    if dist < old_dist:
-                        ind_to_add = j
-                        print(dist)
-                        old_dist = dist
+                        if dist < old_dist:
+                            ind_to_add = j
+                            print(dist)
+                            old_dist = dist
 
-            i = mol.GetNumAtoms()
-            edmol = Chem.EditableMol(mol)
-            edmol.AddAtom(atm_trans)
-            edmol.AddBond(ind_to_add - 1, i, Chem.BondType.SINGLE)
-            new_mol = edmol.GetMol()
-            conf = new_mol.GetConformer()
-            conf.SetAtomPosition(i, Point3D(res_coords[0], res_coords[1], res_coords[2]))
-            try:
-                Chem.MolToMolFile(new_mol, mol_file)
-            except ValueError:
-                Chem.MolToMolFile(new_mol, mol_file, kekulize=False)
+                i = mol.GetNumAtoms()
+                edmol = Chem.EditableMol(mol)
+                edmol.AddAtom(atm_trans)
+                edmol.AddBond(ind_to_add - 1, i, Chem.BondType.SINGLE)
+                new_mol = edmol.GetMol()
+                conf = new_mol.GetConformer()
+                conf.SetAtomPosition(i, Point3D(res_coords[0], res_coords[1], res_coords[2]))
+                try:
+                    Chem.MolToMolFile(new_mol, mol_file)
+                except ValueError:
+                    Chem.MolToMolFile(new_mol, mol_file, kekulize=False)
 
 
 def process_covalent(directory):
