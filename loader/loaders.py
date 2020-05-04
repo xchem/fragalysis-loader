@@ -828,6 +828,7 @@ def new_process_covalent(directory):
 
 def process_covalent(directory):
     link_atoms = {'SG': 16, 'O': 8, 'N': 7, 'C': 6, 'C5': 6}
+
     print([x[0] for x in os.walk(directory)])
     for f in [x[0] for x in os.walk(directory)]:
         print(str(f) + '/*_bound.pdb')
