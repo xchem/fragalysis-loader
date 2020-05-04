@@ -761,8 +761,74 @@ def get_3d_distance(coord_a, coord_b):
     return np.sqrt(sum_)
 
 
+def new_process_covalent(directory):
+    for f in [x[0] for x in os.walk(directory)]:
+        print(str(f) + '/*_bound.pdb')
+        print(glob.glob(str(f) + '/*_bound.pdb'))
+        if glob.glob(str(f) + '/*_bound.pdb'):
+            bound_pdb = glob.glob(str(f) + '/*_bound.pdb')[0]
+            mol_file = glob.glob(str(f) + '/*.mol')[0]
+            pdb = open(bound_pdb, 'r').readlines()
+            for line in pdb:
+                if 'LINK' in line:
+                    zero = line[13:27]
+                    one = line[43:57]
+
+                    if 'LIG' in zero:
+                        res = one
+
+                    if 'LIG' in one:
+                        res = zero
+            for line in pdb:
+                if 'ATOM' in line and line[13:27]==res:
+                    res_x = float(line[31:39])
+                    res_y = float(line[39:47])
+                    res_z = float(line[47:55])
+                    res_atom_sym = line.rsplit()[-1].rstrip()
+                    atom_sym_no = pd.DataFrame.from_csv('../atom_numbers.csv')
+                    res_atom_no = atom_sym_no.loc[res_atom_sym].number
+                    res_coords = [res_x, res_y, res_z]
+                    print(res_coords)
+                    atm = Chem.MolFromPDBBlock(line)
+                    atm_trans = atm.GetAtomWithIdx(0)
+
+            mol = Chem.MolFromMolFile(mol_file)
+            # edmol = Chem.EditableMol(mol)
+
+            orig_pdb_block = Chem.MolToPDBBlock(mol)
+
+            lig_block = '\n'.join([l for l in orig_pdb_block.split('\n') if 'COMPND' not in l])
+            lig_lines = [l for l in lig_block.split('\n') if 'HETATM' in l]
+            j = 0
+            old_dist = 100
+            for line in lig_lines:
+                j += 1
+                #                 print(line)
+                if 'HETATM' in line:
+                    coords = [line[31:39].strip(), line[39:47].strip(), line[47:55].strip()]
+                    dist = get_3d_distance(coords, res_coords)
+
+                    if dist < old_dist:
+                        ind_to_add = j
+                        print(dist)
+                        old_dist = dist
+
+            i = mol.GetNumAtoms()
+            edmol = Chem.EditableMol(mol)
+            edmol.AddAtom(atm_trans)
+            edmol.AddBond(ind_to_add - 1, i, Chem.BondType.SINGLE)
+            new_mol = edmol.GetMol()
+            conf = new_mol.GetConformer()
+            conf.SetAtomPosition(i, Point3D(res_coords[0], res_coords[1], res_coords[2]))
+            try:
+                Chem.MolToMolFile(new_mol, mol_file)
+            except ValueError:
+                Chem.MolToMolFile(new_mol, mol_file, kekulize=False)
+
+
 def process_covalent(directory):
-    link_atoms = {'SG': 16, 'O': 8, 'N': 7, 'C':6, 'C5':6}
+    link_atoms = {'SG': 16, 'O': 8, 'N': 7, 'C': 6, 'C5': 6}
+
     print([x[0] for x in os.walk(directory)])
     for f in [x[0] for x in os.walk(directory)]:
         print(str(f) + '/*_bound.pdb')
@@ -818,7 +884,7 @@ def process_target(prefix, target_name, app):
     """
     target_path = os.path.join(prefix, target_name)
     print('TARGET_PATH: ' + target_path)
-    process_covalent(target_path)
+    new_process_covalent(target_path)
     if os.path.isfile(os.path.join(target_path, 'biomol.txt')):
         print('ADDING BIOMOL REMARK')
         add_biomol_remark(search_path=target_path)
