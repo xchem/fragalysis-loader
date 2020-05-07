@@ -704,6 +704,21 @@ def analyse_mols(mols, target, specified_site=False, site_description=None):
     get_vectors(mols)
 
 
+def rename_mols(names_csv):
+    names_frame = pd.read_csv(names_csv)
+
+    for _, row in names_frame.iterrows():
+        mol_target = row['name']
+        alternate_name = row['alternate_name']
+        new_name = str(mol_target).replace('_0','') + ':' + str(alternate_name).strip()
+
+        prots = Protein.objects.filter(code=mol_target)
+        for prot in prots:
+            print('changing prot name to: ' + new_name)
+            prot.code = new_name
+            prot.save()
+
+
 
 def analyse_target(target_name, target_path):
     """
@@ -717,6 +732,57 @@ def analyse_target(target_name, target_path):
     # Delete the old ones for this target - don't delete! UPDATE...
     # MolGroup.objects.filter(group_type="PC", target_id=target).delete()
     # MolGroup.objects.filter(group_type="MC", target_id=target).delete()
+
+    if os.path.isfile(os.path.join(target_path, 'metadata.csv')):
+
+        # remove any existing files so that we don't create a messy file when appending
+        if os.path.isfile(os.path.join(target_path, 'hits_ids.csv')):
+            os.remove(os.path.join(target_path, 'hits_ids.csv'))
+
+        if os.path.isfile(os.path.join(target_path, 'sites.csv')):
+            os.remove(os.path.join(target_path, 'sites.csv'))
+
+        if os.path.isfile(os.path.join(target_path, 'alternate_names.csv')):
+            os.remove(os.path.join(target_path, 'alternate_names.csv'))
+
+        new_frame = pd.read_csv(os.path.join(target_path, 'metadata.csv'))
+        new_frame.sort_values(by='site_name', inplace=True)
+
+        # one file for new names
+        with open(os.path.join(target_path, 'alternate_names.csv'), 'a') as f:
+            f.write('name,alternate_name\n')
+
+            for _, row in new_frame.iterrows():
+                if isinstance(row['alternate_name'], str):
+                    crystal_name = row['crystal_name']
+                    # find the correct crystal
+                    crystal = Protein.objects.filter(code__contains=crystal_name)
+                    alternate_name = row['alternate_name']
+                    for crys in list(set([c.code for c in crystal])):
+                        f.write(str(crys) + ',' + str(alternate_name) + '\n')
+
+        # hits and sites files
+        site_mapping = {}
+        unique_sites = list(set(list(new_frame['site_name'])))
+        for i in range(0, len(unique_sites)):
+            site_mapping[unique_sites[i]] = i
+
+        with open(os.path.join(target_path, 'hits_ids.csv'), 'a') as f:
+            f.write('crystal_id,site_number\n')
+
+            for _, row in new_frame.iterrows():
+                crystal_name = row['crystal_name']
+                crystal = Protein.objects.filter(code__contains=crystal_name)
+                site = row['site_name']
+                s_id = site_mapping[site]
+                for crys in list(set([c.code for c in crystal])):
+                    f.write(str(crys) + ',' + str(s_id) + '\n')
+
+        with open(os.path.join(target_path, 'sites.csv'), 'a') as f:
+            f.write('site,id\n')
+            for key in site_mapping.keys():
+                f.write(str(key) + ',' + str(site_mapping[key]) + '\n')
+
     if os.path.isfile(os.path.join(target_path, 'hits_ids.csv')) and os.path.isfile(
             os.path.join(target_path, 'sites.csv')):
 
@@ -727,9 +793,13 @@ def analyse_target(target_name, target_path):
             description = row['site']
             print('Processing user input site: ' + description)
             hit_ids = list(hits_sites['crystal_id'][hits_sites['site_number'] == i])
-            print('HIT IDS: ' + str(hit_ids))
-            mols = list(Molecule.objects.filter(prot_id__target_id=target, prot_id__code__in=hit_ids))
-            analyse_mols(mols=mols, target=target, specified_site=True, site_description=description)
+            if hit_ids:
+                print('HIT IDS: ' + str(hit_ids))
+                mols = list(Molecule.objects.filter(prot_id__target_id=target, prot_id__code__in=hit_ids))
+                analyse_mols(mols=mols, target=target, specified_site=True, site_description=description)
+
+    if os.path.isfile(os.path.join(target_path, 'alternate_names.csv')):
+        rename_mols(names_csv=os.path.join(target_path, 'alternate_names.csv'))
 
     else:
         analyse_mols(mols=mols, target=target)
@@ -764,7 +834,7 @@ def get_3d_distance(coord_a, coord_b):
 def new_process_covalent(directory):
     for f in [x[0] for x in os.walk(directory)]:
         covalent = False
-        
+
         print(str(f) + '/*_bound.pdb')
         print(glob.glob(str(f) + '/*_bound.pdb'))
         if glob.glob(str(f) + '/*_bound.pdb'):
@@ -779,10 +849,12 @@ def new_process_covalent(directory):
 
                     if 'LIG' in zero:
                         res = one
+                        covalent = True
 
                     if 'LIG' in one:
                         res = zero
-                    covalent=True
+                        covalent = True
+
             if covalent:
                 for line in pdb:
                     if 'ATOM' in line and line[13:27]==res:

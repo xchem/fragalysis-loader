@@ -1,6 +1,6 @@
 import os
 import glob
-from viewer.compound_sets import process_compound_set
+# from viewer.compound_sets import process_compound_set
 
 
 def get_target_list(base_path, ln):
@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     django.setup()
     from loader.loaders import process_target
-    from viewer.compound_sets import process_compound_set
+    # from viewer.compound_sets import process_compound_set
 
     prefix = "/code/media/NEW_DATA/"
 
@@ -42,8 +42,8 @@ if __name__ == "__main__":
     for target_name in targets_to_load:
         process_target(prefix, target_name, app=app)
 
-    for target_name in targets_to_load:
-        print(os.path.join(prefix, target_name, 'compound_sets/compound-set*.sdf'))
-        compound_sets = glob.glob(os.path.join(prefix, target_name, 'compound_sets/compound-set*.sdf'))
-        for cset in compound_sets:
-            process_compound_set(target=target_name, filename=cset)
+    # for target_name in targets_to_load:
+    #     print(os.path.join(prefix, target_name, 'compound_sets/compound-set*.sdf'))
+    #     compound_sets = glob.glob(os.path.join(prefix, target_name, 'compound_sets/compound-set*.sdf'))
+    #     for cset in compound_sets:
+    #         process_compound_set(target=target_name, filename=cset)
