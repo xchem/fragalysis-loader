@@ -790,9 +790,10 @@ def analyse_target(target_name, target_path):
             description = row['site']
             print('Processing user input site: ' + description)
             hit_ids = list(hits_sites['crystal_id'][hits_sites['site_number'] == i])
-            print('HIT IDS: ' + str(hit_ids))
-            mols = list(Molecule.objects.filter(prot_id__target_id=target, prot_id__code__in=hit_ids))
-            analyse_mols(mols=mols, target=target, specified_site=True, site_description=description)
+            if hit_ids:
+                print('HIT IDS: ' + str(hit_ids))
+                mols = list(Molecule.objects.filter(prot_id__target_id=target, prot_id__code__in=hit_ids))
+                analyse_mols(mols=mols, target=target, specified_site=True, site_description=description)
 
     if os.path.isfile(os.path.join(target_path, 'alternate_names.csv')):
         rename_mols(names_csv=os.path.join(target_path, 'alternate_names.csv'))
