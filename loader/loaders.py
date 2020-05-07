@@ -703,17 +703,19 @@ def analyse_mols(mols, target, specified_site=False, site_description=None):
 
     get_vectors(mols)
 
+
 def rename_mols(names_csv):
     names_frame = pd.read_csv(names_csv)
 
     for _, row in names_frame.iterrows():
-        mol_target = names_frame['name']
-        alternate_name = names_frame['alternate_name']
-        new_name = str(mol_target) + ' (' + str(alternate_name) + ')'
+        mol_target = row['name']
+        alternate_name = row['alternate_name']
+        new_name = str(mol_target).replace('_0','') + ':' + str(alternate_name).strip()
 
         prots = Protein.objects.filter(code=mol_target)
         for prot in prots:
-            prot.name = new_name
+            print('changing prot name to: ' + new_name)
+            prot.code = new_name
             prot.save()
 
 
@@ -744,6 +746,7 @@ def analyse_target(target_name, target_path):
             os.remove(os.path.join(target_path, 'alternate_names.csv'))
 
         new_frame = pd.read_csv(os.path.join(target_path, 'metadata.csv'))
+        new_frame.sort_values(by='site_name', inplace=True)
 
         # one file for new names
         with open(os.path.join(target_path, 'alternate_names.csv'), 'a') as f:
