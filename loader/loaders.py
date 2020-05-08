@@ -764,7 +764,7 @@ def analyse_target(target_name, target_path):
         # hits and sites files
         site_mapping = {}
         unique_sites = list(set(list(new_frame['site_name'])))
-        for i in range(0, len(unique_sites)):
+        for i in range(0, len(sorted(unique_sites))):
             site_mapping[unique_sites[i]] = i
 
         with open(os.path.join(target_path, 'hits_ids.csv'), 'a') as f:
@@ -789,13 +789,18 @@ def analyse_target(target_name, target_path):
         hits_sites = pd.read_csv(os.path.join(target_path, 'hits_ids.csv'))
         sites = pd.read_csv(os.path.join(target_path, 'sites.csv'))
 
-        for i, row in sites.iterrows():
+        for _, row in sites.iterrows():
             description = row['site']
+            number = row['id']
             print('Processing user input site: ' + description)
-            hit_ids = list(hits_sites['crystal_id'][hits_sites['site_number'] == i])
-            if hit_ids:
-                print('HIT IDS: ' + str(hit_ids))
-                mols = list(Molecule.objects.filter(prot_id__target_id=target, prot_id__code__in=hit_ids))
+            matches = []
+            for _, row in hits_sites.iterrows():
+                if str(row['site_number']) == str(number):
+                    matches.append(row['crystal_id'])
+            print('HIT IDS: ' + str(matches))
+            print('\n')
+            if matches:
+                mols = list(Molecule.objects.filter(prot_id__target_id=target, prot_id__code__in=matches))
                 analyse_mols(mols=mols, target=target, specified_site=True, site_description=description)
 
     if os.path.isfile(os.path.join(target_path, 'alternate_names.csv')):
