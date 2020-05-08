@@ -681,6 +681,7 @@ def analyse_mols(mols, target, specified_site=False, site_description=None):
         # look for molgroup with same target and description
         mol_group = search_for_molgroup_by_description(target=target.title, description=site_description)
 
+
         if not mol_group:
             mol_group = MolGroup()
         mol_group.group_type = "MC"
@@ -789,6 +790,11 @@ def analyse_target(target_name, target_path):
         hits_sites = pd.read_csv(os.path.join(target_path, 'hits_ids.csv'))
         sites = pd.read_csv(os.path.join(target_path, 'sites.csv'))
         sites.sort_values(by='site', inplace=True)
+
+        # delete the old molgroups first
+        mgs = MolGroup.objects.filter(target_id = target)
+        for m in mgs:
+            m.delete()
 
         for _, row in sites.iterrows():
             description = row['site']
