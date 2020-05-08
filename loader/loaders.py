@@ -788,6 +788,7 @@ def analyse_target(target_name, target_path):
 
         hits_sites = pd.read_csv(os.path.join(target_path, 'hits_ids.csv'))
         sites = pd.read_csv(os.path.join(target_path, 'sites.csv'))
+        sites.sort_values(by='site', inplace=True)
 
         for _, row in sites.iterrows():
             description = row['site']
