@@ -799,7 +799,7 @@ def analyse_target(target_name, target_path):
         for _, row in sites.iterrows():
             description = row['site']
             number = row['id']
-            print('Processing user input site: ' + description)
+            print('Processing user input site: ' + str(description))
             matches = []
             for _, row in hits_sites.iterrows():
                 if str(row['site_number']) == str(number):
