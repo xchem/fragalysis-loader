@@ -1,4 +1,6 @@
-FROM xchem/fragalysis-backend
+ARG BE_NAMESPACE="xchem"
+ARG BE_IMAGE_TAG="latest"
+FROM ${BE_NAMESPACE}/fragalysis-backend:${BE_IMAGE_TAG}
 ENV PYTHONUNBUFFERED 1
 ADD . /code/
 WORKDIR /code
