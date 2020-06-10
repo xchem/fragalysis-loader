@@ -66,8 +66,8 @@ jobs:
     - docker build -t ${LOADER_NAMESPACE}/fragalysis-mount-loader:latest --build-arg BE_NAMESPACE=${BE_NAMESPACE} --build-arg BE_IMAGE_TAG=${BE_IMAGE_TAG} .
     - docker push ${LOADER_NAMESPACE}/fragalysis-mount-loader:latest
     - popd
-    # The s3 loader (expects an AWS S3 bucket)
 
+    # The s3 loader (expects an AWS S3 bucket)
     - pushd specialised-loaders/s3-loader
     - docker build -t ${LOADER_NAMESPACE}/fragalysis-s3-loader:latest --build-arg BE_NAMESPACE=${BE_NAMESPACE} --build-arg BE_IMAGE_TAG=${BE_IMAGE_TAG} .
     - docker push ${LOADER_NAMESPACE}/fragalysis-s3-loader:latest
