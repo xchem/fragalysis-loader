@@ -57,14 +57,35 @@ jobs:
   - stage: build
     name: Latest Container
     script:
+    # The core loader
     - docker build -t ${LOADER_NAMESPACE}/fragalysis-loader:latest --build-arg BE_NAMESPACE=${BE_NAMESPACE} --build-arg BE_IMAGE_TAG=${BE_IMAGE_TAG} .
     - docker push ${LOADER_NAMESPACE}/fragalysis-loader:latest
+
+    # The mount loader (expects an NFS export to mount to)
+    - pushd specialised-loaders/mount-loader
+    - docker build -t ${LOADER_NAMESPACE}/fragalysis-mount-loader:latest --build-arg BE_NAMESPACE=${BE_NAMESPACE} --build-arg BE_IMAGE_TAG=${BE_IMAGE_TAG} .
+    - docker push ${LOADER_NAMESPACE}/fragalysis-mount-loader:latest
+    - popd
+    # The s3 loader (expects an AWS S3 bucket)
+
+    - pushd specialised-loaders/s3-loader
+    - docker build -t ${LOADER_NAMESPACE}/fragalysis-s3-loader:latest --build-arg BE_NAMESPACE=${BE_NAMESPACE} --build-arg BE_IMAGE_TAG=${BE_IMAGE_TAG} .
+    - docker push ${LOADER_NAMESPACE}/fragalysis-s3-loader:latest
+    - popd
 
   - stage: build
     name: Tagged Container
     script:
     - docker build -t ${LOADER_NAMESPACE}/fragalysis-loader:${TRAVIS_TAG} --build-arg BE_NAMESPACE=${BE_NAMESPACE} --build-arg BE_IMAGE_TAG=${BE_IMAGE_TAG} .
     - docker push ${LOADER_NAMESPACE}/fragalysis-loader:${TRAVIS_TAG}
+    - pushd specialised-loaders/mount-loader
+    - docker build -t ${LOADER_NAMESPACE}/fragalysis-mount-loader:${TRAVIS_TAG} --build-arg BE_NAMESPACE=${BE_NAMESPACE} --build-arg BE_IMAGE_TAG=${BE_IMAGE_TAG} .
+    - docker push ${LOADER_NAMESPACE}/fragalysis-mount-loader:${TRAVIS_TAG}
+    - popd
+    - pushd specialised-loaders/s3-loader
+    - docker build -t ${LOADER_NAMESPACE}/fragalysis-s3-loader:${TRAVIS_TAG} --build-arg BE_NAMESPACE=${BE_NAMESPACE} --build-arg BE_IMAGE_TAG=${BE_IMAGE_TAG} .
+    - docker push ${LOADER_NAMESPACE}/fragalysis-s3-loader:${TRAVIS_TAG}
+    - popd
     if: tag IS present AND env(PUBLISH_IMAGES) = yes
 
   - stage: build stable
@@ -73,3 +94,9 @@ jobs:
     - docker pull ${LOADER_NAMESPACE}/fragalysis-loader:${TRAVIS_TAG}
     - docker tag ${LOADER_NAMESPACE}/fragalysis-loader:${TRAVIS_TAG} ${LOADER_NAMESPACE}/fragalysis-loader:stable
     - docker push ${LOADER_NAMESPACE}/fragalysis-loader:stable
+    - docker pull ${LOADER_NAMESPACE}/fragalysis-mount-loader:${TRAVIS_TAG}
+    - docker tag ${LOADER_NAMESPACE}/fragalysis-mount-loader:${TRAVIS_TAG} ${LOADER_NAMESPACE}/fragalysis-mount-loader:stable
+    - docker push ${LOADER_NAMESPACE}/fragalysis-mount-loader:stable
+    - docker pull ${LOADER_NAMESPACE}/fragalysis-s3-loader:${TRAVIS_TAG}
+    - docker tag ${LOADER_NAMESPACE}/fragalysis-s3-loader:${TRAVIS_TAG} ${LOADER_NAMESPACE}/fragalysis-s3-loader:stable
+    - docker push ${LOADER_NAMESPACE}/fragalysis-s3-loader:stable
