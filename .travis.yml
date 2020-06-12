@@ -100,3 +100,5 @@ jobs:
     - docker pull ${LOADER_NAMESPACE}/fragalysis-s3-loader:${TRAVIS_TAG}
     - docker tag ${LOADER_NAMESPACE}/fragalysis-s3-loader:${TRAVIS_TAG} ${LOADER_NAMESPACE}/fragalysis-s3-loader:stable
     - docker push ${LOADER_NAMESPACE}/fragalysis-s3-loader:stable
+notifications:
+  slack: fragalysis:a6ADA8gLyx8tpHQfyzucMB8B
