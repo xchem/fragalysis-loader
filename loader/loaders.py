@@ -736,6 +736,11 @@ def analyse_target(target_name, target_path):
 
     if os.path.isfile(os.path.join(target_path, 'metadata.csv')):
 
+        target.metadata.save(
+            os.path.basename(os.path.join(target_path, 'metadata.csv')),
+            File(open(os.path.join(target_path, 'metadata.csv')))
+        )
+
         # remove any existing files so that we don't create a messy file when appending
         if os.path.isfile(os.path.join(target_path, 'hits_ids.csv')):
             os.remove(os.path.join(target_path, 'hits_ids.csv'))
