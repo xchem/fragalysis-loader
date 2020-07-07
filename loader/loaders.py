@@ -1,4 +1,4 @@
-import sys, json, os, glob
+import sys, json, os, glob, shutil
 from django.contrib.auth.models import User
 from viewer.models import Target, Protein, Molecule, Compound, Project
 from hypothesis.models import (
@@ -24,6 +24,13 @@ import numpy as np
 import pandas as pd
 from rdkit.Geometry import Point3D
 
+from django.conf import settings
+
+
+def relative_to_media_root(filepath, media_root=settings.MEDIA_ROOT):
+    relative_path = os.path.relpath(filepath, media_root)
+    return relative_path
+
 
 def add_target(title):
     """
@@ -32,7 +39,7 @@ def add_target(title):
     :return: the created target
     """
     new_target = Target.objects.get_or_create(title=title)
-    print('Target created = ' +str(Target.objects.get_or_create(title=title)[1]))
+    print('Target created = ' + str (Target.objects.get_or_create(title=title)[1]))
     return new_target[0]
 
 
@@ -431,6 +438,7 @@ def load_from_dir(target_name, dir_path, app):
     :param dir_path: the path to the input data.
     :return: None
     """
+
     input_dict = get_dict()
     if os.path.isdir(dir_path):
         pass
@@ -720,7 +728,6 @@ def rename_mols(names_csv):
             prot.save()
 
 
-
 def analyse_target(target_name, target_path):
     """
     Analyse all the molecules for a particular target
@@ -728,6 +735,8 @@ def analyse_target(target_name, target_path):
     :return: None
     """
     target = Target.objects.get(title=target_name)
+    # target.root_data_directory = relative_to_media_root(target_path)
+    target.save()
     mols = list(Molecule.objects.filter(prot_id__target_id=target))
     print("Analysing " + str(len(mols)) + " molecules for " + target_name)
     # Delete the old ones for this target - don't delete! UPDATE...
@@ -820,6 +829,13 @@ def analyse_target(target_name, target_path):
 
     else:
         analyse_mols(mols=mols, target=target)
+
+    # last step - zip up the input file and move it to the archive
+    # new_prot.pdb_info.save(os.path.basename(pdb_file_path), File(open(pdb_file_path)))
+    zipped = shutil.make_archive(target_path, 'zip', target_path)
+    # shutil.move(zipped, os.path.join(settings.MEDIA_ROOT, 'archive', os.path.basename(zipped)))
+    target.zip_archive.name = relative_to_media_root(zipped)
+    target.save()
 
 def write_lig_pdb(pdb):
     f = open('lig.pdb', 'w')
@@ -977,6 +993,26 @@ def process_target(prefix, target_name, app):
     :return:
     """
     target_path = os.path.join(prefix, target_name)
+
+    # path to save the media to
+    media_root = settings.MEDIA_ROOT
+    upload_path = os.path.join(media_root, 'targets')
+
+    # remove existing data
+    if os.path.isdir(upload_path):
+        shutil.rmtree(upload_path)
+
+    # add the upload path
+    os.makedirs(upload_path)
+
+    print('Saving uploaded data to ' + upload_path)
+
+    # move the whole folder
+    shutil.move(target_path, upload_path)
+
+    # change the target_path to the new path
+    target_path = os.path.join(upload_path, target_name)
+
     print('TARGET_PATH: ' + target_path)
     new_process_covalent(target_path)
     if os.path.isfile(os.path.join(target_path, 'biomol.txt')):
