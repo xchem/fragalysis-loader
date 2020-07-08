@@ -39,7 +39,7 @@ def add_target(title):
     :return: the created target
     """
     new_target = Target.objects.get_or_create(title=title)
-    print('Target created = ' + str (Target.objects.get_or_create(title=title)[1]))
+    print('Target created = ' + str(Target.objects.get_or_create(title=title)[1]))
     return new_target[0]
 
 
@@ -58,17 +58,21 @@ def add_prot(pdb_file_path, code, target, mtz_path=None, map_path=None, bound_pa
     new_prot = new_prot[0]
     new_prot.apo_holo = True
     if pdb_file_path:
-        new_prot.pdb_info.delete()
-        new_prot.pdb_info.save(os.path.basename(pdb_file_path), File(open(pdb_file_path)))
+        # new_prot.pdb_info.delete()
+        # new_prot.pdb_info.save(os.path.basename(pdb_file_path), File(open(pdb_file_path)))
+        new_prot.pdb_info.name = relative_to_media_root(pdb_file_path)
     if mtz_path:
-        new_prot.mtz_info.delete()
-        new_prot.mtz_info.save(os.path.basename(mtz_path), File(open(mtz_path)))
+        # new_prot.mtz_info.delete()
+        # new_prot.mtz_info.save(os.path.basename(mtz_path), File(open(mtz_path)))
+        new_prot.mtz_info.name = relative_to_media_root(mtz_path)
     if map_path:
-        new_prot.map_info.delete()
-        new_prot.map_info.save(os.path.basename(map_path), File(open(map_path)))
+        # new_prot.map_info.delete()
+        # new_prot.map_info.save(os.path.basename(map_path), File(open(map_path)))
+        new_prot.map_info.name = relative_to_media_root(map_path)
     if bound_path:
-        new_prot.bound_info.delete()
-        new_prot.bound_info.save(os.path.basename(bound_path), File(open(bound_path)))
+        # new_prot.bound_info.delete()
+        # new_prot.bound_info.save(os.path.basename(bound_path), File(open(bound_path)))
+        new_prot.bound_info.name = relative_to_media_root(bound_path)
     new_prot.save()
     return new_prot
 
@@ -735,7 +739,7 @@ def analyse_target(target_name, target_path):
     :return: None
     """
     target = Target.objects.get(title=target_name)
-    # target.root_data_directory = relative_to_media_root(target_path)
+    target.root_data_directory = relative_to_media_root(target_path)
     target.save()
     mols = list(Molecule.objects.filter(prot_id__target_id=target))
     print("Analysing " + str(len(mols)) + " molecules for " + target_name)
