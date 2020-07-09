@@ -830,12 +830,27 @@ def analyse_target(target_name, target_path):
     else:
         analyse_mols(mols=mols, target=target)
 
+
+    # move anything thats not a directory in 'aligned' up a level
+    files = (f for f in os.listdir(target_path)
+             if os.path.isfile(os.path.join(target_path, f)))
+
+    for f in files:
+        shutil.move(os.path.join(target_path, f), os.path.join(target_path, f).replace('aligned', ''))
+
+    # delete NEW_DATA VISITS PROPOSALS
+    to_delete = ['NEW_DATA', 'VISITS', 'PROPOSALS']
+    for f in to_delete:
+        fp = os.path.join(target_path.replace('aligned', ''), f)
+        if os.path.isfile(fp):
+            os.remove(fp)
+
     # last step - zip up the input file and move it to the archive
-    # new_prot.pdb_info.save(os.path.basename(pdb_file_path), File(open(pdb_file_path)))
     zipped = shutil.make_archive(target_path.replace('aligned', ''), 'zip', target_path.replace('aligned', ''))
     # shutil.move(zipped, os.path.join(settings.MEDIA_ROOT, 'archive', os.path.basename(zipped)))
     target.zip_archive.name = relative_to_media_root(zipped)
     target.save()
+
 
 def write_lig_pdb(pdb):
     f = open('lig.pdb', 'w')
@@ -1027,6 +1042,5 @@ def process_target(prefix, target_name, app):
     if os.path.isfile(new_data_file):
         print("Analysing target: " + target_name)
         analyse_target(target_name, target_path)
-        os.remove(new_data_file)
     else:
         print("NEW_DATA not found for " + target_path)
