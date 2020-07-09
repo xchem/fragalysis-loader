@@ -1012,10 +1012,11 @@ def process_target(prefix, target_name, app):
     # path to save the media to
     media_root = settings.MEDIA_ROOT
     upload_path = os.path.join(media_root, 'targets')
+    target_upload_path = os.path.join(upload_path, target_name)
 
     # remove existing data
-    if os.path.isdir(upload_path):
-        shutil.rmtree(upload_path)
+    if os.path.isdir(target_upload_path):
+        shutil.rmtree(target_upload_path)
 
     # add the upload path
     os.makedirs(upload_path)
