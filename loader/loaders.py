@@ -1018,10 +1018,6 @@ def process_target(prefix, target_name, app):
     if os.path.isdir(target_upload_path):
         shutil.rmtree(target_upload_path)
 
-    # add the upload path
-    if not os.path.isdir(target_upload_path):
-        os.makedirs(target_upload_path)
-
     print('Saving uploaded data to ' + upload_path)
 
     # move the whole folder
