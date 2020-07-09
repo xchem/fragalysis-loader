@@ -569,9 +569,7 @@ def analyse_target(target_name, target_path):
     MolGroup.objects.filter(group_type="MC", target_id=target).delete()
     if os.path.isfile(os.path.join(target_path, 'hits_ids.csv')) and os.path.isfile(
             os.path.join(target_path, 'sites.csv')):
-        analyse_mols(mols=mols, target=target,
-                     specified_sites=os.path.join(target_path, 'sites.csv'),
-                     hit_sites=os.path.join(target_path, 'hits_ids.csv'))
+
 
 
         hits_sites = pd.Dataframe.from_csv(os.path.join(target_path, 'hits_ids.csv'))
