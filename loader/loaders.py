@@ -832,7 +832,7 @@ def analyse_target(target_name, target_path):
 
     # last step - zip up the input file and move it to the archive
     # new_prot.pdb_info.save(os.path.basename(pdb_file_path), File(open(pdb_file_path)))
-    zipped = shutil.make_archive(target_path, 'zip', target_path)
+    zipped = shutil.make_archive(target_path.replace('aligned', ''), 'zip', target_path.replace('aligned', ''))
     # shutil.move(zipped, os.path.join(settings.MEDIA_ROOT, 'archive', os.path.basename(zipped)))
     target.zip_archive.name = relative_to_media_root(zipped)
     target.save()
@@ -1011,7 +1011,7 @@ def process_target(prefix, target_name, app):
     shutil.move(target_path, upload_path)
 
     # change the target_path to the new path
-    target_path = os.path.join(upload_path, target_name)
+    target_path = os.path.join(upload_path, target_name, 'aligned')
 
     print('TARGET_PATH: ' + target_path)
     new_process_covalent(target_path)
