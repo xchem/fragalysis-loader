@@ -1019,7 +1019,7 @@ def process_target(prefix, target_name, app):
         shutil.rmtree(target_upload_path)
 
     # add the upload path
-    os.makedirs(upload_path)
+    os.makedirs(target_upload_path)
 
     print('Saving uploaded data to ' + upload_path)
 
