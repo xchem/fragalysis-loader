@@ -24,12 +24,46 @@ fi
 # - Wipe the (temporary) destination directory
 # - Copy new content
 # - Run the loader
+
+# Wipe
+# ----
+
 DST=/code/media/NEW_DATA
 echo "+> Removing ${DST}"
 rm -rf ${DST}
 mkdir ${DST}
-echo "+> Synchronising ${DATA_ORIGIN} to ${DST}..."
-aws s3 sync "s3://${BUCKET_NAME}/django-data/${DATA_ORIGIN}" /code/media/NEW_DATA
+
+# Copy
+# ----
+
+# List the bucket's objects (files).
+# Output is typically: -
+#
+#   2019-07-29 18:06:05          0 combine-done
+#   2019-07-29 18:05:57          0 done
+#   2019-07-29 18:03:41         38 edges-header.csv
+#   2019-07-30 19:48:00 22699163411 edges.csv.gz
+#
+# And we want...
+#
+#   combine-done
+#   done
+#   edges-header.csv
+#   edges.csv.gz
+BUCKET_PATH="${BUCKET_NAME}/django-data/${DATA_ORIGIN}"
+echo "+> Listing S3 path (${BUCKET_PATH})..."
+PATH_OBJECTS=$(aws s3 ls "s3://${BUCKET_PATH}" | tr -s ' ' | cut -d ' ' -f 4)
+
+# Now copy each object to the media's NEW_DATA directory
+echo "+> Copying objects..."
+for PATH_OBJECT in $PATH_OBJECTS; do
+  aws s3 cp "s3://${BUCKET_PATH}/${PATH_OBJECT}" "/code/media/NEW_DATA/${PATH_OBJECT}"
+done
+echo "+> Copied."
+
+# Load
+# ----
+
 echo "+> Running loader..."
 ./run_loader.sh
 echo "+> Done."
