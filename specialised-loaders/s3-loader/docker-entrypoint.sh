@@ -39,25 +39,23 @@ mkdir ${DST}
 # List the bucket's objects (files).
 # Output is typically: -
 #
-#   2019-07-29 18:06:05          0 combine-done
-#   2019-07-29 18:05:57          0 done
-#   2019-07-29 18:03:41         38 edges-header.csv
-#   2019-07-30 19:48:00 22699163411 edges.csv.gz
+#   2020-09-16 12:56:32      12288 django-data/ALL_TARGETS/.TARGET_LIST.swp
+#   2020-09-16 12:56:32       1886 django-data/ALL_TARGETS/ALL_TARGETS/ATAD/ATAD2A-x1712_1/ATAD2A-x1712_1.mol
+#   2020-09-16 12:56:32       4064 django-data/ALL_TARGETS/ALL_TARGETS/ATAD/ATAD2A-x1712_1/ATAD2A-x1712_1.mol2
 #
 # And we want...
 #
-#   combine-done
-#   done
-#   edges-header.csv
-#   edges.csv.gz
+#   ALL_TARGETS/.TARGET_LIST.swp
+#   ALL_TARGETS/ALL_TARGETS/ATAD/ATAD2A-x1712_1/ATAD2A-x1712_1.mol
+#   ALL_TARGETS/ALL_TARGETS/ATAD/ATAD2A-x1712_1/ATAD2A-x1712_1.mol2
 BUCKET_PATH="${BUCKET_NAME}/django-data/${DATA_ORIGIN}"
 echo "+> Listing S3 path (${BUCKET_PATH})..."
-PATH_OBJECTS=$(aws s3 ls "s3://${BUCKET_PATH}" | tr -s ' ' | cut -d ' ' -f 4)
+PATH_OBJECTS=$(aws s3 ls --recursive "s3://${BUCKET_PATH}" | tr -s ' ' | cut -d ' ' -f 4 | cut -c13-)
 
 # Now copy each object to the media's NEW_DATA directory
 echo "+> Copying objects..."
 for PATH_OBJECT in $PATH_OBJECTS; do
-  aws s3 cp "s3://${BUCKET_PATH}/${PATH_OBJECT}" "/code/media/NEW_DATA/${PATH_OBJECT}"
+  aws s3 cp "s3://${BUCKET_NAME}/django-data/${PATH_OBJECT}" "/code/media/NEW_DATA/${PATH_OBJECT}"
 done
 echo "+> Copied."
 
