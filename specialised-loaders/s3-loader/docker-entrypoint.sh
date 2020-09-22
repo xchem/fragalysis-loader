@@ -51,14 +51,17 @@ mkdir ${DST}
 BUCKET_PATH="${BUCKET_NAME}/django-data/${DATA_ORIGIN}"
 echo "+> Listing S3 path (${BUCKET_PATH})..."
 PATH_OBJECTS=$(aws s3 ls --recursive "s3://${BUCKET_PATH}" | tr -s ' ' | cut -d ' ' -f 4)
+NUM_PATH_OBJECTS=$(echo $PATH_OBJECTS | tr ' ' '\n' | wc -l)
+echo "+> Listed ${NUM_PATH_OBJECTS} objects."
 
-# Now copy each object to the media's NEW_DATA directory
+# Now copy each object to the media's NEW_DATA directory.
 # The PATH_OBJECT 'django-data/2020-09-15T16/TARGET_LIST'
-# is written as 'TARGET_LIST' to '/code/media/NEW_DATA'
+# is written as 'TARGET_LIST' to '/code/media/NEW_DATA'.
+# Do it quietly - we don't want thousands of lines in the log.
 echo "+> Copying objects..."
 for SRC_OBJECT in $PATH_OBJECTS; do
   DST_OBJECT=$(echo "${SRC_OBJECT}" | cut -f 3- -d '/');
-  aws s3 cp "s3://${BUCKET_NAME}/${SRC_OBJECT}" "/code/media/NEW_DATA/${DST_OBJECT}";
+  aws s3 cp "s3://${BUCKET_NAME}/${SRC_OBJECT}" "/code/media/NEW_DATA/${DST_OBJECT}" --only-show-errors;
 done
 echo "+> Copied."
 
