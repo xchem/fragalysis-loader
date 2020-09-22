@@ -1021,7 +1021,7 @@ def process_target(prefix, target_name, app):
     print('Saving uploaded data to ' + upload_path)
 
     # move the whole folder
-    shutil.move(target_path, upload_path)
+    shutil.move(target_path, target_upload_path)
 
     # change the target_path to the new path
     target_path = os.path.join(upload_path, target_name, 'aligned')
