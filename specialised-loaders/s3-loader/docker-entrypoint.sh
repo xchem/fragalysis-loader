@@ -37,33 +37,23 @@ mkdir ${DST}
 # ----
 
 # List the bucket's objects (files).
-# Output is typically: -
+# On S3 the object is always called media.tar.gz
+# so we pull this file down and decompress it into '/code/media/NEW_DATA'
+# before deleting the downloaded media archive.
 #
-#   2020-09-16 12:56:32      12288 django-data/2020-09-15T16/READY
-#   2020-09-16 12:56:32       1886 django-data/2020-09-15T16/TARGET_LIST
-#   2020-09-16 12:56:32       4064 django-data/2020-09-15T16/ATAD/ATAD2A-x1712_1/ATAD2A-x1712_1.mol2
+# And, when copied into the stack image, the directories resemble...
 #
-# And we want...
+#   /code/media/NEW_DATA/READY
+#   /code/media/NEW_DATA/TARGET_LIST
+#   /code/media/NEW_DATA/ATAD/ATAD2A-x1712_1/ATAD2A-x1712_1.mol2
 #
-#   django-data/2020-09-15T16/READY
-#   django-data/2020-09-15T16/TARGET_LIST
-#   django-data/2020-09-15T16/ATAD/ATAD2A-x1712_1/ATAD2A-x1712_1.mol2
-BUCKET_PATH="${BUCKET_NAME}/django-data/${DATA_ORIGIN}"
-echo "+> Listing S3 path (${BUCKET_PATH})..."
-PATH_OBJECTS=$(aws s3 ls --recursive "s3://${BUCKET_PATH}" | tr -s ' ' | cut -d ' ' -f 4)
-NUM_PATH_OBJECTS=$(echo $PATH_OBJECTS | tr ' ' '\n' | wc -l)
-echo "+> Listed ${NUM_PATH_OBJECTS} objects."
-
-# Now copy each object to the media's NEW_DATA directory.
-# The PATH_OBJECT 'django-data/2020-09-15T16/TARGET_LIST'
-# is written as 'TARGET_LIST' to '/code/media/NEW_DATA'.
-# Do it quietly - we don't want thousands of lines in the log.
-echo "+> Copying objects..."
-for SRC_OBJECT in $PATH_OBJECTS; do
-  DST_OBJECT=$(echo "${SRC_OBJECT}" | cut -f 3- -d '/');
-  aws s3 cp "s3://${BUCKET_NAME}/${SRC_OBJECT}" "/code/media/NEW_DATA/${DST_OBJECT}" --only-show-errors;
-done
-echo "+> Copied."
+BUCKET_PATH="${BUCKET_NAME}/django-data/${DATA_ORIGIN}/media.tar.gz"
+echo "+> Getting S3 object (${BUCKET_PATH})..."
+aws s3 cp "s3://${BUCKET_PATH}" "/code/media/NEW_DATA/media.tar.gz" --only-show-errors
+echo "+> Unpacking..."
+tar -zxf /code/media/NEW_DATA/media.tar.gz -C /code/media/NEW_DATA
+rm /code/media/NEW_DATA/media.tar.gz
+echo "+> Unpacked."
 
 # Load
 # ----
