@@ -50,9 +50,10 @@ mkdir ${DST}
 BUCKET_PATH="${BUCKET_NAME}/django-data/${DATA_ORIGIN}/media.tar.gz"
 echo "+> Getting S3 object (${BUCKET_PATH})..."
 aws s3 cp "s3://${BUCKET_PATH}" "/code/media/NEW_DATA/media.tar.gz" --only-show-errors
-echo "+> Unpacking..."
+echo "+> Unpacking to /code/media/NEW_DATA..."
 tar -zxf /code/media/NEW_DATA/media.tar.gz -C /code/media/NEW_DATA
 rm /code/media/NEW_DATA/media.tar.gz
+ls -l /code/media/NEW_DATA
 echo "+> Unpacked."
 
 # Load
