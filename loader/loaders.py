@@ -59,16 +59,16 @@ def add_prot(pdb_file_path, code, target, mtz_path=None, map_path=None, bound_pa
     new_prot.apo_holo = True
     if pdb_file_path:
         # new_prot.pdb_info.delete()
-        new_prot.pdb_info.save(os.path.basename(pdb_file_path), File(open(pdb_file_path)))
+        new_prot.pdb_info.save(os.path.basename(pdb_file_path), File(open(pdb_file_path, 'rb')))
     if mtz_path:
         # new_prot.mtz_info.delete()
-        new_prot.mtz_info.save(os.path.basename(mtz_path), File(open(mtz_path)))
+        new_prot.mtz_info.save(os.path.basename(mtz_path), File(open(mtz_path, 'rb')))
     if map_path:
         # new_prot.map_info.delete()
-        new_prot.map_info.save(os.path.basename(map_path), File(open(map_path)))
+        new_prot.map_info.save(os.path.basename(map_path), File(open(map_path, 'rb')))
     if bound_path:
         # new_prot.bound_info.delete()
-        new_prot.bound_info.save(os.path.basename(bound_path), File(open(bound_path)))
+        new_prot.bound_info.save(os.path.basename(bound_path), File(open(bound_path, 'rb')))
     new_prot.save()
     return new_prot
 
