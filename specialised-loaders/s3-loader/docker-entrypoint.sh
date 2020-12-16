@@ -24,12 +24,41 @@ fi
 # - Wipe the (temporary) destination directory
 # - Copy new content
 # - Run the loader
+
+# Wipe
+# ----
+
 DST=/code/media/NEW_DATA
 echo "+> Removing ${DST}"
 rm -rf ${DST}
 mkdir ${DST}
-echo "+> Synchronising ${DATA_ORIGIN} to ${DST}..."
-aws s3 sync "s3://${BUCKET_NAME}/django-data/${DATA_ORIGIN}" /code/media/NEW_DATA
+
+# Copy
+# ----
+
+# List the bucket's objects (files).
+# On S3 the object is always called media.tar.gz
+# so we pull this file down and decompress it into '/code/media/NEW_DATA'
+# before deleting the downloaded media archive.
+#
+# And, when copied into the stack image, the directories resemble...
+#
+#   /code/media/NEW_DATA/READY
+#   /code/media/NEW_DATA/TARGET_LIST
+#   /code/media/NEW_DATA/ATAD/ATAD2A-x1712_1/ATAD2A-x1712_1.mol2
+#
+BUCKET_PATH="${BUCKET_NAME}/django-data/${DATA_ORIGIN}/media.tar.gz"
+echo "+> Getting S3 object (${BUCKET_PATH})..."
+aws s3 cp "s3://${BUCKET_PATH}" "/code/media/NEW_DATA/media.tar.gz" --only-show-errors
+echo "+> Unpacking to /code/media/NEW_DATA..."
+tar -zxf /code/media/NEW_DATA/media.tar.gz -C /code/media/NEW_DATA
+rm /code/media/NEW_DATA/media.tar.gz
+ls -l /code/media/NEW_DATA
+echo "+> Unpacked."
+
+# Load
+# ----
+
 echo "+> Running loader..."
 ./run_loader.sh
 echo "+> Done."
