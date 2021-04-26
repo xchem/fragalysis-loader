@@ -1,0 +1,145 @@
+---
+name: build main
+
+# Actions that take place after every commit the master/main branch.
+# Here every commit is built, tagged as 'latest' and tested.
+# If a DOCKERHUB_USERNAME secret is defined the image is pushed.
+#
+# Actions also run if the repository is tagged.
+# Every tag is deployed to staging and every production-grade tag
+# (of the form N.N.N) is deployed to production.defaults:
+#
+# Actions also run on a schedule - the the container is built, tested,
+# pushed and deployed (if the relevant secrets are set) based on
+# a defined schedule.
+#
+# Actions also run on external trigger (workflow-dispatch).
+
+# ---------------
+# Control secrets
+# ---------------
+#
+# At the GitHub 'organisation' or 'project' level you are expected to
+# have the following GitHub 'Repository Secrets' defined
+# (i.e. via 'Settings -> Secrets'): -
+#
+# BE_IMAGE_TAG            optional - default latest
+# BE_NAMESPACE            optional - default xchem
+# LOADER_NAMESPACE         optional - default xchem
+#
+# DOCKERHUB_USERNAME      optional
+# DOCKERHUB_TOKEN         optional - required if DOCKERHUB_USERNAME
+#
+# -----------
+# Environment (GitHub Environments)
+# -----------
+#
+# (none)
+
+on:
+  push:
+    branches:
+    - 'master'
+    - 'main'
+    tags:
+    - '**'
+  schedule:
+  # Build every Sunday (0) at 2:45pm
+  - cron: '45 14 * * 0'
+  # Build if triggered externally.
+  # The trigger can provide a number of (optional) inputs...
+  workflow_dispatch:
+    inputs:
+      be_namespace:
+        description: The fragalysis-backend namespace (to pull from)
+        required: false
+      be_image_tag:
+        description: The fragalysis-backend image contaienr tag (to pull from)
+        required: false
+      loader_namespace:
+        description: The fragalysis-loader namespace (to publish to)
+        required: false
+
+env:
+  # The following 'defaults' are used in the 'Initialise workflow variables' step,
+  # which creates 'outputs' for use in steps and jobs that follow it.
+  # The values set here are used unless a matching secret is found.
+  # Secrets are the way users dynamically control the behaviour of this Action.
+  #
+  #   For Jobs conditional on the presence of a secret see this Gist...
+  #   https://gist.github.com/jonico/24ffebee6d2fa2e679389fac8aef50a3
+  BE_IMAGE_TAG: latest
+  BE_NAMESPACE: xchem
+  LOADER_NAMESPACE: xchem
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.vars.outputs.deploy }}
+      production-tag: ${{ steps.vars.outputs.production-tag }}
+      push: ${{ steps.vars.outputs.push }}
+      tag: ${{ steps.vars.outputs.tag }}
+    steps:
+    - name: Inject slug/short variables
+      uses: rlespinasse/github-slug-action@v3.x
+    - name: Initialise workflow variables
+      id: vars
+      env:
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      run: |
+        # BE_NAMESPACE
+        BE_NAMESPACE="${{ env.BE_NAMESPACE }}"
+        if [ -n "${{ github.event.inputs.be_namespace }}" ]; then BE_NAMESPACE="${{ github.event.inputs.be_namespace }}";
+        elif [ -n "${{ secrets.BE_NAMESPACE }}" ]; then BE_NAMESPACE="${{ secrets.BE_NAMESPACE }}"; fi
+        echo set-output name=BE_NAMESPACE::${BE_NAMESPACE}
+        echo ::set-output name=BE_NAMESPACE::${BE_NAMESPACE}
+
+        # BE_IMAGE_TAG
+        BE_IMAGE_TAG="${{ env.BE_IMAGE_TAG }}"
+        if [ -n "${{ github.event.inputs.be_image_tag }}" ]; then BE_IMAGE_TAG="${{ github.event.inputs.be_image_tag }}";
+        elif [ -n "${{ secrets.BE_IMAGE_TAG }}" ]; then BE_IMAGE_TAG="${{ secrets.BE_IMAGE_TAG }}"; fi
+        echo set-output name=BE_IMAGE_TAG::${BE_IMAGE_TAG}
+        echo ::set-output name=BE_IMAGE_TAG::${BE_IMAGE_TAG}
+
+        # LOADER_NAMESPACE
+        LOADER_NAMESPACE="${{ env.LOADER_NAMESPACE }}"
+        if [ -n "${{ github.event.inputs.loader_namespace }}" ]; then LOADER_NAMESPACE="${{ github.event.inputs.loader_namespace }}";
+        elif [ -n "${{ secrets.LOADER_NAMESPACE }}" ]; then LOADER_NAMESPACE="${{ secrets.LOADER_NAMESPACE }}"; fi
+        echo set-output name=LOADER_NAMESPACE::${LOADER_NAMESPACE}
+        echo ::set-output name=LOADER_NAMESPACE::${LOADER_NAMESPACE}
+
+        # What image tag are we using? 'latest' (if not tagged) or a GitHub tag?
+        TAG="latest"
+        if [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then TAG="${{ env.GITHUB_REF_SLUG }}"; fi
+        echo set-output name=tag::${TAG}
+        echo ::set-output name=tag::${TAG}
+
+        # Do we push, i.e. is DOCKERHUB_USERNAME defined?
+        echo set-output name=push::${{ env.DOCKERHUB_USERNAME != '' }}
+        echo ::set-output name=push::${{ env.DOCKERHUB_USERNAME != '' }}
+
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Build
+      uses: docker/build-push-action@v2
+      with:
+        tags: ${{ steps.vars.outputs.LOADER_NAMESPACE }}/fragalysis-loader:${{ steps.vars.outputs.tag }}
+    - name: Test
+      run: >
+        docker-compose -f docker-compose.test.yml up
+        --exit-code-from tests
+        --abort-on-container-exit
+      env:
+        STACK_NAMESPACE: ${{ steps.vars.outputs.STACK_NAMESPACE }}
+        STACK_TAG: ${{ steps.vars.outputs.tag }}
+    - name: Login to DockerHub
+      if: steps.vars.outputs.push == 'true'
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - name: Push
+      if: steps.vars.outputs.push == 'true'
+      run: docker push ${{ steps.vars.outputs.LOADER_NAMESPACE }}/fragalysis-loader:${{ steps.vars.outputs.tag }}
