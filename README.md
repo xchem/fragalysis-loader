@@ -1,14 +1,10 @@
 # fragalysis-loader
-Django backend loader for fragalysis app - takes data from Verne and pushes it to fragalysis, and does some processing to add things to the database
+Django backend loader for fragalysis app - takes data from NFS (mount) or S3,
+pushes it to fragalysis.
 
-# For fragalysis.diamond.ac.uk
-- Jenkins builds the loader container 
-- Once built, the loader looks for data on verne (the machine that we call the cloud)
-   
-The loader takes the data and:
+The loader takes data and:
 - Populates the database
 - Does some sciency stuff
 
 # How it works
-
 Nobody knows...
