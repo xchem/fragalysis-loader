@@ -25,7 +25,7 @@ name: build main
 #
 # BE_IMAGE_TAG            optional - default latest
 # BE_NAMESPACE            optional - default xchem
-# LOADER_NAMESPACE         optional - default xchem
+# LOADER_NAMESPACE        optional - default xchem
 #
 # DOCKERHUB_USERNAME      optional
 # DOCKERHUB_TOKEN         optional - required if DOCKERHUB_USERNAME
